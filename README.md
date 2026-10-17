@@ -627,6 +627,8 @@ Set `DATABASE_URL` to any Postgres (Neon / Supabase) and run `pnpm dev:keeper` s
 
 ## 11. Live deployment (Arc testnet)
 
+**Live app: https://agent-arena-tameion.vercel.app** (web on Vercel; gateway, keeper and agents on Render free tier: `agent-arena-gateway.onrender.com`, `agent-arena-agents.onrender.com`; the first request after idle takes about a minute to wake them).
+
 Chain id `5042002` · USDC `0x3600000000000000000000000000000000000000` (6-decimals ERC-20 interface; native gas uses the same balance at 18 decimals).
 
 | Contract | Address |
@@ -661,7 +663,7 @@ All addresses are also in [deployments/5042002.json](deployments/5042002.json). 
 - **Survival credit trusts the gateway attestor** (a documented assumption; the roadmap is multi-attestor and TEE). A **breach never depends on it**.
 - **Non-determinism:** Gauntlet replays use temperature 0 and require all three runs to pass.
 - **Bugs found and fixed during the build** (both have regression tests): a concurrent session on an already-breached agent could still be closed as "survived" (found by the invariant fuzzer), and zero- or one-message sessions counted toward tier gates.
-- **Not built yet:** Paymaster-sponsored onboarding, cross-chain bounty funding (CCTP) and USYC yield on idle bounty (reasons in [docs/PRD_STATUS.md](docs/PRD_STATUS.md)), and a public hosted deployment (it currently runs locally). The AAP SDK and `create-arena-agent` scaffolder **are built** (`packages/aap-sdk`, `packages/create-arena-agent`).
+- **Not built yet:** Paymaster-sponsored onboarding, cross-chain bounty funding (CCTP) and USYC yield on idle bounty (reasons in [docs/PRD_STATUS.md](docs/PRD_STATUS.md)), and the web attack page does not use x402 yet. The AAP SDK and `create-arena-agent` scaffolder **are built** (`packages/aap-sdk`, `packages/create-arena-agent`).
 - **Full item-by-item status against the PRD:** [docs/PRD_STATUS.md](docs/PRD_STATUS.md).
 
 Threat model with mitigations: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).

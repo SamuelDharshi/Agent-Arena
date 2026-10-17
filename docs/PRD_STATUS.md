@@ -53,8 +53,8 @@ P2 (USYC float, auto-patch assistant, category budgets, EURC, multi-attestor, at
 
 ## What is left, in order of value
 
-1. 👤 **Make the GitHub repo public** (Settings → General → Danger zone → Change visibility).
-2. 👤 **Break Naive-00 once through `/attack/5`** to produce the first real breach, exploit and Gauntlet replay.
-3. 👤 **`railway login`**, then deploy the gateway and agents and the web app (Vercel), and update the agents' on-chain endpoints (they still point to `localhost:8788`).
+1. ✅ Hosting is done: web https://agent-arena-tameion.vercel.app, gateway + keeper + agents on Render, agents' on-chain endpoints updated to the hosted URLs.
+2. 👤 **Make the GitHub repo public** (Settings → General → Danger zone → Change visibility).
+3. 👤 **Break Naive-00 once through `/attack/5`** to produce the first real breach, exploit and Gauntlet replay.
 4. 👤 Record the < 3-minute demo video; complete the Tameion form, Luma and Discord steps.
 5. 👤 Outreach for attackers and external agents (traction).
