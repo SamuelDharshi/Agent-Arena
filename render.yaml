@@ -44,7 +44,6 @@ services:
       - { key: NODE_VERSION, value: 22.13.1 }
       - { key: DATABASE_URL, fromDatabase: { name: arena-db, property: connectionString } }
       - { key: RUN_KEEPER, value: "true" }
-      - { key: X402_ENABLED, value: "0" } # the x402 server needs a second public port, which Render's free web services lack
       - { key: DEMO_FAST_TIERS, value: "true" }
       - { key: GATEWAY_ATTESTOR_KEY, sync: false }
       - { key: KEEPER_KEY, sync: false }

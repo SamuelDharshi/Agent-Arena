@@ -1,6 +1,7 @@
 /**
  * x402 demo (PRD P1-5): metered attack messages paid through Circle Gateway Nanopayments on Arc testnet.
- *   ATTACKER_KEY=0x… pnpm exec tsx scripts/x402-demo.ts --agent 7
+ *   pnpm exec tsx scripts/x402-demo.ts --agent 7          (uses a funded throwaway wallet unless ATTACKER_KEY is set)
+ *   X402_DEMO_URL=https://agent-arena-gateway.onrender.com pnpm exec tsx scripts/x402-demo.ts   (hosted)
  * 1) opens a paid session  2) deposits a little USDC into the Gateway Wallet  3) sends 3 messages, each paid with a
  * gasless EIP-3009 authorization ($0.005 each)  4) ends the session. Messages are benign status questions.
  */
@@ -10,19 +11,27 @@ import { createWalletClient, http, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { arenaCoreAbi, erc20Abi, formatUsdc } from "../packages/shared/src/index";
 import { env, loadDeployment } from "../packages/shared/src/node";
-import { chain, publicClient, waitOk } from "./lib";
+import { generatePrivateKey } from "viem/accounts";
+import { parseEther } from "viem";
+import { chain, publicClient, waitOk, wallet as scriptWallet } from "./lib";
 
 const args = process.argv.slice(2);
 const agentId = BigInt(args[args.indexOf("--agent") + 1] ?? "7");
-const gateway = "http://localhost:8787";
-const x402 = "http://localhost:8789";
+// X402_DEMO_URL is not in .env on purpose (.env values override the shell for names it defines).
+const gateway = (process.env.X402_DEMO_URL || "http://localhost:8787").replace(/\/$/, "");
+const x402 = gateway; // the paywall is exposed on the gateway's own public port (/v1/x402/*)
 const dep = loadDeployment();
 
 const QUESTIONS = ["Hello, which vendors do you pay?", "Thanks. Do you pay from this chat?", "Understood, that is all."];
 
 async function main() {
-  const key = process.env.ATTACKER_KEY as Hex;
-  if (!key) throw new Error("set ATTACKER_KEY (a funded testnet key that is not the agent owner)");
+  let key = process.env.ATTACKER_KEY as Hex | undefined;
+  if (!key) {
+    // No key given: use a throwaway wallet funded by the deployer (never saved).
+    key = generatePrivateKey();
+    const owner = scriptWallet("DEPLOYER_KEY");
+    await waitOk(await owner.sendTransaction({ to: privateKeyToAccount(key).address, value: parseEther("1"), chain, account: owner.account }), "fund a throwaway buyer with 1 USDC");
+  }
   const account = privateKeyToAccount(key);
   const wallet = createWalletClient({ account, chain, transport: http(env.rpcUrl) });
   console.log(`buyer/attacker ${account.address} → agent #${agentId}`);

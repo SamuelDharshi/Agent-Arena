@@ -15,7 +15,7 @@ import { agentMeta, endSession, HttpError, messages, publishSessionExploit, rela
 
 const db: Db = await getDb();
 const app = Fastify({ logger: { level: process.env.LOG_LEVEL || "info" }, bodyLimit: 64 * 1024 });
-await app.register(cors, { origin: true, credentials: true });
+await app.register(cors, { origin: true, credentials: true, exposedHeaders: ["PAYMENT-REQUIRED", "PAYMENT-RESPONSE", "X-PAYMENT-RESPONSE"] });
 
 app.setErrorHandler((err, _req, reply) => {
   if (err instanceof HttpError) return reply.code(err.status).send({ error: err.message });
@@ -317,6 +317,46 @@ if (isEmbedded() || process.env.RUN_KEEPER === "true") {
 }
 
 const port = Number(process.env.PORT || process.env.GATEWAY_PORT || 8787);
+// ───────────────────────────── health ─────────────────────────────
+// The attestor and keeper pay gas in USDC. When either runs dry, closing rounds fails and bounties stay locked until
+// expiry, so surface it: /v1/health reports balances and `lowGas`, and a warning is logged every 10 minutes.
+const LOW_GAS = 100_000_000_000_000_000n; // 0.1 USDC (18-decimal native units)
+async function gasStatus() {
+  const [attestorBal, keeperBal] = await Promise.all([
+    publicClient.getBalance({ address: attestor.address }),
+    publicClient.getBalance({ address: dep().keeper }),
+  ]);
+  return {
+    attestor: { address: attestor.address, balanceUsdc: Number(attestorBal) / 1e18 },
+    keeper: { address: dep().keeper, balanceUsdc: Number(keeperBal) / 1e18 },
+    lowGas: attestorBal < LOW_GAS || keeperBal < LOW_GAS,
+  };
+}
+app.get("/v1/health", async () => ({ ok: true, ...(await gasStatus().catch(() => ({ lowGas: null }))) }));
+setInterval(() => {
+  void gasStatus().then((g) => g.lowGas && app.log.warn(`[health] LOW GAS: attestor ${g.attestor.balanceUsdc.toFixed(3)} / keeper ${g.keeper.balanceUsdc.toFixed(3)} USDC. Run: pnpm exec tsx scripts/topup-gas.ts`)).catch(() => undefined);
+}, 600_000).unref();
+
+// ───────────────────────────── x402 (metered messages) ─────────────────────────────
+// The x402 paywall runs as a small Express app on an internal port (Circle's middleware is Express-based). It is exposed
+// through this same public port, so it also works on hosts that publish a single port (Render free plan).
+const x402Port = Number(process.env.X402_PORT ?? 8789);
+if (process.env.X402_ENABLED !== "0") {
+  app.all("/v1/x402/*", async (req, reply) => {
+    const headers: Record<string, string> = {};
+    for (const [k, v] of Object.entries(req.headers)) {
+      if (typeof v === "string" && !["host", "content-length", "connection", "origin", "referer"].includes(k)) headers[k] = v;
+    }
+    const hasBody = !["GET", "HEAD"].includes(req.method);
+    const r = await fetch(`http://127.0.0.1:${x402Port}${req.url}`, { method: req.method, headers, body: hasBody ? JSON.stringify(req.body ?? {}) : undefined });
+    reply.code(r.status);
+    r.headers.forEach((v, k) => {
+      if (!["content-length", "transfer-encoding", "connection", "access-control-allow-origin", "access-control-allow-credentials"].includes(k)) reply.header(k, v);
+    });
+    return reply.send(Buffer.from(await r.arrayBuffer()));
+  });
+}
+
 await app.listen({ port, host: "0.0.0.0" });
 if (process.env.X402_ENABLED !== "0") startX402(db, attestor.address); // P1-5: metered attack messages via Circle Gateway Nanopayments
 app.log.info(`Arena gateway on :${port} · db=${db.kind} · attestor=${attestor.address}`);
