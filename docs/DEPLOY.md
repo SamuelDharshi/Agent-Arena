@@ -13,7 +13,7 @@
 3. **Apply.** Wait for both services to show *Live*. Their URLs should be `https://agent-arena-agents.onrender.com` and `https://agent-arena-gateway.onrender.com` (if Render adds a suffix because the name is taken, use the real URL below and in step 5).
 4. Check: `https://agent-arena-gateway.onrender.com/v1/config` returns JSON and `https://agent-arena-agents.onrender.com/health` returns `ok`.
 5. Point the agents at their hosted endpoints on-chain (they still say `localhost:8788`):
-   `AGENTS_PUBLIC_URL=https://agent-arena-agents.onrender.com pnpm exec tsx scripts/set-endpoints.ts`
+   `HOSTED_AGENTS_URL=https://agent-arena-agents.onrender.com pnpm exec tsx scripts/set-endpoints.ts`
 6. If the gateway URL is not `https://agent-arena-gateway.onrender.com`, update the Vercel variable and redeploy:
    `vercel env add NEXT_PUBLIC_GATEWAY_URL production --force` then `vercel --prod`.
 

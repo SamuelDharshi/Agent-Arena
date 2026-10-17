@@ -1,6 +1,6 @@
 /**
  * Points the registered agents at their public (hosted) AAP endpoints on-chain.
- *   AGENTS_PUBLIC_URL=https://agent-arena-agents.onrender.com pnpm exec tsx scripts/set-endpoints.ts 5 6 7
+ *   HOSTED_AGENTS_URL=https://agent-arena-agents.onrender.com pnpm exec tsx scripts/set-endpoints.ts 5 6 7
  * Agent ids are matched to slugs by their on-chain signer (the same lookup the seed script uses).
  */
 import { agentRegistryAbi } from "../packages/shared/src/index";
@@ -10,8 +10,8 @@ import { signerAddress } from "../apps/agents/src/chain";
 import { chain, publicClient, waitOk, wallet } from "./lib";
 
 async function main() {
-  const base = process.env.AGENTS_PUBLIC_URL?.replace(/\/$/, "");
-  if (!base?.startsWith("https://")) throw new Error("set AGENTS_PUBLIC_URL to the hosted agents URL (https://…)");
+  const base = process.env.HOSTED_AGENTS_URL?.replace(/\/$/, "");
+  if (!base?.startsWith("https://")) throw new Error("set HOSTED_AGENTS_URL to the hosted agents URL (https://…)");
   const dep = loadDeployment();
   const owner = wallet("DEPLOYER_KEY");
   for (const a of AGENTS) {
