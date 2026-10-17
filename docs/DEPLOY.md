@@ -1,34 +1,28 @@
-# Deploying Agent Arena (Arc testnet, real USDC, real Claude)
+# Deploying Agent Arena (free tier)
 
-## 1. Go live on Arc testnet
-
-1. Fund the deployer printed by `pnpm status` at <https://faucet.circle.com> (Arc Testnet, ≈ $60).
-2. Put a valid `ANTHROPIC_API_KEY` in `.env`.
-3. `pnpm go-live` — waits until both are ready, then builds + deploys the contracts, seeds the three reference agents with real testnet USDC, and runs the real-Claude pipeline smoke test.
-
-## 2. Host the backend (Railway — two services from this repo)
-
-`railway login` (browser), then create one project with **two services** pointing at this repo:
-
-| Service | Start command | Variables |
+| Part | Where | Status |
 |---|---|---|
-| `agents` | `pnpm start:agents` | everything from `.env` (agent keys, `VENDOR_SEED`, `ANTHROPIC_API_KEY`, `ARC_*`, `USDC_ADDRESS`) |
-| `gateway` | `pnpm start:gateway` | everything from `.env` (attestor + keeper keys, `ARC_*`), `RUN_KEEPER=true`, `DATABASE_URL` from a Railway Postgres plugin, `GATEWAY_PUBLIC_URL=https://<gateway domain>` |
+| Web app (`apps/web`) | **Vercel**, project `agent-arena` | ✅ live at https://agent-arena-tameion.vercel.app (also https://agent-arena-brown.vercel.app). `agent-arena.vercel.app` is owned by someone else |
+| Agents + Gateway/Keeper + Postgres | **Render** (free), blueprint [`render.yaml`](../render.yaml) | follow the steps below |
+| Contracts | Arc testnet | ✅ deployed, see [deployments/5042002.json](../deployments/5042002.json) |
 
-Both servers listen on Railway's `PORT`. Also commit `deployments/5042002.json` (the gateway, keeper and agents read contract addresses from it).
+## Render (backend), about 10 minutes
 
-The agent endpoints are registered on-chain at seed time from `AGENTS_PUBLIC_URL`. Set `AGENTS_PUBLIC_URL=https://<agents domain>` **before** `pnpm seed:arc`, or have the owner call `AgentRegistry.updateEndpoint` / `updateMetadata` afterwards.
+1. Render dashboard → **New → Blueprint** → connect GitHub → pick `SamuelDharshi/Agent-Arena` → it reads `render.yaml` (two web services and one free Postgres).
+2. It asks for the secrets marked `sync: false`. Open the git-ignored local file `data/render-env.txt` and paste each value into the matching service (it is split into "agent-arena-agents" and "agent-arena-gateway"). Never commit that file.
+3. **Apply.** Wait for both services to show *Live*. Their URLs should be `https://agent-arena-agents.onrender.com` and `https://agent-arena-gateway.onrender.com` (if Render adds a suffix because the name is taken, use the real URL below and in step 5).
+4. Check: `https://agent-arena-gateway.onrender.com/v1/config` returns JSON and `https://agent-arena-agents.onrender.com/health` returns `ok`.
+5. Point the agents at their hosted endpoints on-chain (they still say `localhost:8788`):
+   `AGENTS_PUBLIC_URL=https://agent-arena-agents.onrender.com pnpm exec tsx scripts/set-endpoints.ts`
+6. If the gateway URL is not `https://agent-arena-gateway.onrender.com`, update the Vercel variable and redeploy:
+   `vercel env add NEXT_PUBLIC_GATEWAY_URL production --force` then `vercel --prod`.
 
-## 3. Host the web app (Vercel)
+Free-plan limits: services sleep after about 15 minutes without traffic (the first request then takes about 50 seconds); the keeper only runs while the gateway is awake and catches up from its saved cursor when it wakes. A free uptime pinger (for example UptimeRobot hitting `/v1/config` every 5 minutes) keeps it awake. The x402 server (port 8789) is disabled on Render because free web services expose one public port.
 
-`cd apps/web && vercel --prod` (root directory `apps/web`; `vercel.json` installs from the monorepo root). Environment variables:
+## Vercel (web)
 
-```
-NEXT_PUBLIC_GATEWAY_URL=https://<gateway domain>
-NEXT_PUBLIC_CHAIN_ID=5042002
-NEXT_PUBLIC_RPC_URL=https://rpc.testnet.arc.io
-```
+Already configured: root directory `apps/web`, variables `NEXT_PUBLIC_GATEWAY_URL`, `NEXT_PUBLIC_CHAIN_ID`, `NEXT_PUBLIC_RPC_URL`; pushes to `main` redeploy automatically (the repo is connected). Manual deploy: `vercel --prod` from the repository root.
 
-## 4. Local harness
+## Local
 
-`make demo` — anvil + labeled test token + the same deploy/seed scripts + all services (web <http://localhost:3000>). See README.
+`pnpm dev` runs everything on your machine (agents :8788, gateway + keeper :8787, x402 :8789, web :3000); see the README.

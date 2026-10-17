@@ -17,7 +17,7 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm install -g pnpm@10.33.2 && pnpm install --frozen-lockfile
+    buildCommand: npm install -g pnpm@10.33.2 && pnpm install --frozen-lockfile --prod=false
     startCommand: pnpm start:agents
     healthCheckPath: /health
     envVars:
@@ -37,7 +37,7 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm install -g pnpm@10.33.2 && pnpm install --frozen-lockfile
+    buildCommand: npm install -g pnpm@10.33.2 && pnpm install --frozen-lockfile --prod=false
     startCommand: pnpm start:gateway
     healthCheckPath: /v1/config
     envVars:
