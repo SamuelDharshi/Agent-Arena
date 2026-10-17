@@ -74,7 +74,16 @@ async function main() {
   for (const w of wallets) await waitOk(await owner.sendTransaction({ to: w.account.address, value: parseEther("2"), chain, account: owner.account }), `fund ${w.name} with 2 USDC`);
   console.log("before:");
   await standings();
-  for (const agentId of [5n, 6n, 7n]) for (const w of wallets) await round(w, agentId);
+  for (const agentId of [5n, 6n, 7n]) {
+    // A T2 round locks $10 of the agent's free bounty; skip agents whose bounty is currently locked by other open rounds.
+    const row = ((await (await fetch(`${GW}/v1/agents`)).json()) as { id: number; bounty_pool: string; locked_bounty: string }[]).find((x) => BigInt(x.id) === agentId);
+    const free = row ? (BigInt(row.bounty_pool) - BigInt(row.locked_bounty)) / 1_000_000n : 0n;
+    if (free < 10n) {
+      console.log(`agent #${agentId}: skipped (only $${free} of free bounty, other rounds are open)`);
+      continue;
+    }
+    for (const w of wallets) await round(w, agentId);
+  }
   await sleep(10_000);
   console.log("after:");
   await standings();
