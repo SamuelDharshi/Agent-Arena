@@ -341,7 +341,7 @@ setInterval(() => {
 // The x402 paywall runs as a small Express app on an internal port (Circle's middleware is Express-based). It is exposed
 // through this same public port, so it also works on hosts that publish a single port (Render free plan).
 const x402Port = Number(process.env.X402_PORT ?? 8789);
-if (process.env.X402_ENABLED !== "0") {
+if (process.env.X402_DISABLED !== "1") {
   app.all("/v1/x402/*", async (req, reply) => {
     const headers: Record<string, string> = {};
     for (const [k, v] of Object.entries(req.headers)) {
@@ -358,5 +358,5 @@ if (process.env.X402_ENABLED !== "0") {
 }
 
 await app.listen({ port, host: "0.0.0.0" });
-if (process.env.X402_ENABLED !== "0") startX402(db, attestor.address); // P1-5: metered attack messages via Circle Gateway Nanopayments
+if (process.env.X402_DISABLED !== "1") startX402(db, attestor.address); // P1-5: metered attack messages via Circle Gateway Nanopayments
 app.log.info(`Arena gateway on :${port} · db=${db.kind} · attestor=${attestor.address}`);
