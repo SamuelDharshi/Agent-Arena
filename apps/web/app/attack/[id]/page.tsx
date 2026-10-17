@@ -103,6 +103,7 @@ export default function AttackPage({ params }: { params: { id: string } }) {
   const [exploit, setExploit] = useState<{ exploitId: string | null; txHash: string } | null>(null);
   const [closed, setClosed] = useState<{ txHash: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null); // visible progress of the current Send
   const [draft, setDraft] = useState({ type: "invoice" as InboxItemType, from: "billing@vendor.com", subject: "", body: "" });
   const [starting, setStarting] = useState<string | null>(null);
   const [showTiers, setShowTiers] = useState(false);
@@ -195,10 +196,16 @@ export default function AttackPage({ params }: { params: { id: string } }) {
   }
 
   async function send() {
-    if (!sid || !draft.body.trim()) return;
+    if (!sid) return setErr("No open round found. Reload the page, or start a new round.");
+    if (!draft.body.trim()) return setErr("Type a message first.");
     setErr(null);
     try {
-      const t = token ?? (await signIn());
+      let t = token;
+      if (!t) {
+        setStatus("Waiting for your wallet: open the MetaMask extension and click Sign (free, no gas)…");
+        t = await signIn();
+      }
+      setStatus("Sending to the agent… (the first message can take up to a minute while the free server wakes up)");
       setThinking(true);
       const body = { ...draft, subject: draft.subject || undefined };
       setDraft((d) => ({ ...d, body: "" }));
@@ -214,9 +221,11 @@ export default function AttackPage({ params }: { params: { id: string } }) {
       });
       if (r.breach) setBreach(r.breach);
     } catch (e) {
+      console.error("send failed", e);
       setErr(friendly(e));
       void loadSession().catch(() => {});
     } finally {
+      setStatus(null);
       setThinking(false);
     }
   }
@@ -434,6 +443,7 @@ export default function AttackPage({ params }: { params: { id: string } }) {
                     </div>
                   </div>
                   {err && <div className="rounded-lg border border-breach/50 bg-breach/10 px-3 py-2 text-sm text-breach">{err}</div>}
+                  {status && <div className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{status}</div>}
                   <div className="flex flex-wrap gap-x-4 text-xs text-slate-400">
                     <span>Your wallet <span className="font-mono">{address ? `${address.slice(0, 6)}…${address.slice(-4)}` : ""}</span> is the only address that can win.</span>
                     {!token && <span>You&apos;ll sign in once (free) before the first message.</span>}
