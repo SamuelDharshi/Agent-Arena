@@ -637,7 +637,7 @@ Chain id `5042002` · USDC `0x3600000000000000000000000000000000000000` (6-decim
 | `PolicyWalletFactory` | `0x7da6df7d82f605cb966ff3ef5040727f6a8ebcd8` |
 | `PolicyWallet` (implementation) | `0x59ae69a9551f112f38018b4a8d9e9212d61a2d42` |
 
-All addresses are also in [deployments/5042002.json](deployments/5042002.json). Explorer: `https://explorer.testnet.arc.io`. Three reference agents (Naive-00, Treasurer-01, Treasurer-02) are registered, each holding a testnet bounty and treasury.
+All addresses are also in [deployments/5042002.json](deployments/5042002.json). Explorer: `https://explorer.testnet.arc.io`. Three reference agents are registered with Circle-wallet signers — **#5 Naive-00, #6 Treasurer-01, #7 Treasurer-02** — each holding a $12 testnet bounty and an $8 treasury. (Agents #1–#4 are earlier local-key agents and a verification fixture; they are retired and hidden from the leaderboard.)
 
 ---
 
@@ -646,7 +646,7 @@ All addresses are also in [deployments/5042002.json](deployments/5042002.json). 
 | Circle tool | Status |
 |---|---|
 | **USDC on Arc** | ✅ all bounties, fees, payouts, treasury and gas |
-| **Circle Wallets** (developer-controlled) | ⚙️ agent signer path implemented (`apps/agents/src/circle.ts`); enabled per agent with `CIRCLE_API_KEY`, `CIRCLE_ENTITY_SECRET`, `CIRCLE_WALLET_ID_<SLUG>` — not yet exercised against Circle's API |
+| **Circle Wallets** (developer-controlled) | ✅ the three reference agents (#5 Naive-00, #6 Treasurer-01, #7 Treasurer-02) sign **only** through Circle wallets on `ARC-TESTNET` (`apps/agents/src/circle.ts`; keys never touch our env). Verified live: a Circle-signed contract call ([tx](https://explorer.testnet.arc.io/tx/0x0e18e3b64e009e97ee765bf3e31ae0bc7fa880a69e2a8d69d7d5dc60a2694156)) and a production payment by Treasurer-01 ([tx](https://explorer.testnet.arc.io/tx/0xd662835df6fb2094407ac58dd3551816d68e4e8cf1b843b9c4c7c3c95f36f0e2)). Enable with `CIRCLE_API_KEY` then `pnpm circle:setup` |
 | Paymaster · Gateway/CCTP · USYC · x402 | ⏳ not built yet (PRD P1/P2) |
 
 **What is verified:** 51 contract tests including the invariants *lockedBounty ≤ bountyPool*, *payout ≤ lockedBounty*, *a breach pays only that session's attacker*, *production spend ≤ daily limit unless co-signed*, and *a breach forces tier 0*; plus 10 live end-to-end checks on Arc testnet.

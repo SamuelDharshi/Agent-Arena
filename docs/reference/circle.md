@@ -27,14 +27,14 @@ Sources (fetched 2026-10-12): <https://developers.circle.com/agent-stack>, <http
 - Response: `data.id`, `data.state`. States: `INITIATED, CLEARED, QUEUED, SENT, STUCK, CONFIRMED, COMPLETE, FAILED, DENIED, CANCELLED`.
 - Entity secret ciphertext: fetch the entity public key from `GET /v1/w3s/config/entity/publicKey`, encrypt the 32-byte secret (RSA-OAEP, SHA-256). <https://developers.circle.com/wallets/dev-controlled/entity-secret-management.md>
 
-Enable per agent with `CIRCLE_API_KEY`, `CIRCLE_ENTITY_SECRET`, `CIRCLE_WALLET_ID_<SLUG>` (e.g. `CIRCLE_WALLET_ID_TREASURER02`). The runtime then registers/uses the Circle wallet address as the agent signer. **Status: request shape matches the API reference; not yet exercised against Circle's API.**
+Enable per agent with `CIRCLE_API_KEY`, `CIRCLE_ENTITY_SECRET`, `CIRCLE_WALLET_ID_<SLUG>` (e.g. `CIRCLE_WALLET_ID_TREASURER02`). The runtime then registers/uses the Circle wallet address as the agent signer. **Status: exercised live on Arc testnet** (entity secret registered, wallets created, contract execution and a production payment signed by Circle wallets; fee behaviour measured in `scripts/circle-fee-probe.ts`).
 
 ## Status in Agent Arena
 
 | Tool | Status | Where |
 |---|---|---|
 | USDC on Arc | ✅ all accounting, bounties, fees, payouts, gas | `contracts/src/*`, `scripts/deploy.ts` |
-| Developer-controlled Wallets (agent signers) | ⚙️ implemented, untested without credentials | `apps/agents/src/circle.ts`, `apps/agents/src/chain.ts` |
+| Developer-controlled Wallets (agent signers) | ✅ live: agents #5–#7 sign through Circle wallets | `apps/agents/src/circle.ts`, `apps/agents/src/chain.ts` |
 | Paymaster (gasless attacker onboarding) | ⏳ PRD P1-4 | — |
 | x402 / Nanopayments (metered attack messages) | ⏳ PRD P1-5 — `arc-nanopayments` sample is the starting point | — |
 | CCTP / Gateway (cross-chain bounty funding) | ⏳ PRD P1-6 | — |

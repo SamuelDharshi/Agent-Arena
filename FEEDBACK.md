@@ -75,6 +75,8 @@ The chain advertises a price above the floor, so a *well-behaved* client is fine
 | E3 | **EIP-1559** tx, `maxFee` 10 gwei, explicit gas limit (skips estimation) | **Accepted, hash returned.** Not mined; nonce stayed 3 after 10 s |
 | E4 | Underpriced tx at nonce 1, then a **correctly priced** (30 gwei) tx at nonce 2 | The 30 gwei tx **also stayed unmined**. Replacing nonce 1 with a 30 gwei tx **immediately released both** (final nonce 3) |
 | E5 | `pnpm arc:repro` (scripted E2 + E4 + our fix) | Reproduced again end to end; the fix worked (see [section 8](#8-what-we-built-our-fix)) |
+| E6 | **Circle Wallets API** (`contractExecution`) with `feeLevel` LOW and MEDIUM from a disposable wallet (`pnpm exec tsx scripts/circle-fee-probe.ts`) | Both mined within ~3 s (`INITIATED → SENT → COMPLETE`) at on-chain `maxFeePerGas` of **370 gwei** (LOW) and **491 gwei** (MEDIUM) — far above the floor, so Circle's defaults cannot trigger this problem |
+| E7 | **Circle Wallets API** with an explicit `maxFee` of 10 gwei (below the floor) | **Rejected at submission:** `400 The provided fee in request is invalid.` — Circle's layer already refuses what Arc's node accepts |
 
 **Key observation (E1 vs E2/E3).** The node *already contains* the check "fee below base fee": it fires during gas estimation. It is simply **not applied when the transaction is admitted to the pool**. That is an inconsistency, not a missing feature — and it is what makes this look like an oversight rather than a design decision.
 
@@ -133,7 +135,7 @@ Tameion's and Circle's stated goal is **agents that hold and spend USDC on their
 | **Observability / audit** (a Tameion judging theme) | A transaction that never reaches the chain leaves no on-chain or explorer evidence to debug or audit |
 | **Cost of retries** | Agents that retry with the same low fee pile more pending transactions into the stuck queue |
 
-For **Circle Wallets** in particular, the [contract-execution API](https://developers.circle.com/api-reference/wallets/developer-controlled-wallets/create-developer-transaction-contract-execution.md) already has a `STUCK` transaction state, which tells us the Circle side has met this class of problem; a pre-flight fee guard and an automatic replace-by-fee on `STUCK` for Arc would make that state self-healing. (We could not exercise Circle's API in this hackathon — see [limitations](#12-limitations-and-honest-caveats) — so this part is a recommendation, not a measured result.)
+For **Circle Wallets** we measured it (E6, E7 above) and the result is reassuring and instructive: the developer-controlled wallets API either uses fees far above the floor (LOW and MEDIUM mined at 370 and 491 gwei max fee) or **rejects a below-floor fee up front** (`400 The provided fee in request is invalid`). So agents signing through Circle Wallets are protected — and that is exactly the argument for Layer 1: **Circle's API already validates the fee at submission; Arc's own node, which every other signer talks to directly, does not.** One small improvement even there: the Circle error does not say *why* the fee is invalid (it never mentions the 20 gwei floor), so a developer has to find the floor in the docs. (We verified an end-to-end production payment signed by a Circle wallet, see [section 8](#8-what-we-built-our-fix).)
 
 ---
 
@@ -169,6 +171,8 @@ AFTER   → { "error": { "code": -32000,
                                  "hint": "set maxFeePerGas >= minBaseFee, or replace the nonce with a higher fee" } } }
 ```
 
+This is the same check Circle's wallet API already performs (E7), so it is proven, cheap and consistent with how the rest of the stack behaves.
+
 Plus (nice to have): evict any already-pooled sub-floor transaction and release the account's queue; expose the dropped state; fix the three contradictory doc passages into one.
 
 ### Layer 2 — Ecosystem (works now): `arc-guard`
@@ -194,6 +198,8 @@ All code is in this repository and has been exercised live on Arc testnet.
 | [`packages/shared/src/arc-guard.ts`](packages/shared/src/arc-guard.ts) | The library: `arcFloor`, `guardFee`, `ArcUnderpricedError`, `diagnose`, `unwedge`, `sendArcTx` (exported from `@arena/shared`) |
 | [`scripts/arc-underpriced-repro.ts`](scripts/arc-underpriced-repro.ts) | One command that reproduces the bug, then demonstrates every part of the fix (`pnpm arc:repro`) |
 | [`scripts/arc-doctor.ts`](scripts/arc-doctor.ts) | CLI: report an account's mined vs pending nonce and the floor; `--fix` replaces the stuck nonce (`pnpm arc:doctor`) |
+| [`scripts/circle-fee-probe.ts`](scripts/circle-fee-probe.ts) | The Circle Wallets experiment (E6, E7) on a disposable wallet |
+| [`scripts/circle-proof.ts`](scripts/circle-proof.ts) | Proof that a Circle-signed contract call lands on Arc testnet |
 | [`packages/shared/src/chain.ts`](packages/shared/src/chain.ts) | Arc chain definitions with a fee estimator that never goes below the floor (already in use by our agents, gateway and keeper) |
 
 **API in one glance**
@@ -234,7 +240,7 @@ await unwedge(wallet, publicClient);                       // replace the stuck 
 | **1. Docs (days)** | Replace the three contradictory passages with one statement of the real behaviour and a "stuck transaction" recipe (replace-by-fee); add the nonce-blocking warning | Arc docs | One consistent description; recipe tested |
 | **2. Platform admission check (small PR)** | Apply the base-fee check in `eth_sendRawTransaction` and return `-32000 transaction underpriced` with `data.minBaseFee` | Arc node team | Re-running experiments E2/E3 returns an error and leaves no pending tx; E1 behaviour unchanged |
 | **3. Visibility** | Surface pending/dropped transactions in the explorer and via an RPC status call | Arc explorer / RPC | A sub-floor transaction is findable by hash with a clear status |
-| **4. Wallet products** | Pre-flight fee guard + auto replace-by-fee when a Circle Wallets / Agent Wallets transaction reaches `STUCK` on Arc | Circle Wallets | A deliberately mispriced contract execution self-heals without developer action |
+| **4. Wallet products** | Keep the existing fee validation (it works, E7); make the error name the floor (`maxFee 10 gwei < Arc minimum 20 gwei`); add automatic replace-by-fee if a transaction ever reaches `STUCK` on Arc | Circle Wallets | The error message states the floor; a `STUCK` transaction self-heals without developer action |
 | **5. Libraries** | Ship the Arc floor in viem/ethers chain definitions and templates | Circle devrel | New projects get a safe default fee estimator |
 
 **Risks:** replace-by-fee needs ≥10% fee bump (we use +25%); sending two transactions for one account at once shares a nonce (our helper documents this); the floor may change before mainnet (we read it from the chain instead of hard-coding it).
@@ -290,7 +296,7 @@ cast receipt <hash> --rpc-url $RPC                                              
 - **Automatic fee-bump path:** `sendArcTx` guards, uses the confirmed nonce and waits; its bump-and-resend loop is implemented but we did not trigger it live (a correctly priced Arc transaction mines within one block, so we could not make it time out on purpose). Guard, nonce handling, `diagnose` and `unwedge` were all exercised live.
 - **Concurrency:** `sendArcTx` reads the confirmed nonce, so two simultaneous calls from one account would share it. Callers need a per-account send queue.
 - **Nonce visibility is inconsistent:** in one run the node's `pending` nonce counted the stuck transaction (1 vs 0 mined), in another it did not. We therefore do not rely on the pending/confirmed gap to *detect* a wedge — `unwedge` is safe to run unconditionally (worst case it sends one harmless ~$0.0005 self-transfer).
-- **Circle Wallets / Paymaster:** we did not have API credentials in this hackathon, so statements about those products are recommendations, not measurements.
+- **Circle Wallets:** measured with a *test* API key on testnet only (E6, E7 and a live production payment). **Paymaster / Gas Station** were not tested, so nothing in this report is a claim about them.
 - **Testnet only:** the floor is documented as a testnet parameter that "may change before mainnet"; we read it from the chain.
 - **Not reproduced (so not claimed):** we also tried to provoke RPC rate limiting with 120 parallel light calls to the public RPC and got 120 × HTTP 200. Earlier we did see throttling under sustained `eth_getLogs` polling from our indexer, but we did not measure it rigorously, so it is not part of this report.
 
