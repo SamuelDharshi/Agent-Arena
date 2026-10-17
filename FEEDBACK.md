@@ -311,6 +311,8 @@ These are real friction points we hit and verified, listed in order of how much 
 3. **Two public domains in circulation** (`rpc.testnet.arc.io` / `explorer.testnet.arc.io` versus the older `rpc.testnet.arc.network` / `testnet.arcscan.app`). Both answer today, and projects in the wild use either (we saw the older one in a Tameion-ecosystem site we inspected); one canonical set in all docs and chain registries would remove a source of confusion.
 4. **Faucet size versus a realistic deployment.** Our seed script wants roughly $60 of testnet USDC to deploy seven contracts and fund three agents with real bounties; we ended up running with about $32 in the deployer wallet and had to scale the tier bounties down to fit. A higher developer allowance for builders would let serious projects test at realistic sizes.
 
+5. **Circle Paymaster documentation contradicts itself about Arc.** The [Paymaster overview](https://developers.circle.com/paymaster) lists its supported chains as Arbitrum and Base (ERC-4337 v0.7) and Arbitrum, Avalanche, Base, Ethereum, Optimism, Polygon and Unichain (v0.8) — **no Arc** — while the [2025-10-27 release notes](https://developers.circle.com/release-notes/w3s-2025) say "Expanded Paymaster support to include Arc testnet". We could not tell from the docs whether Paymaster works on Arc, which blocked a PRD item. A related design question: on Arc gas is *already* USDC, so a paymaster whose headline feature is "pay gas fees with USDC" has little to add there; the useful Arc feature is *sponsored* gas (Gas Station), which needs ERC-4337 smart accounts rather than the injected wallets most attackers use. A short "what Paymaster / Gas Station mean on Arc" page would save the next builder an afternoon.
+
 ---
 
 ## 14. Appendix
