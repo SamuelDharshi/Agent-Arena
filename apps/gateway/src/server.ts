@@ -311,9 +311,8 @@ setInterval(async () => {
 }, 1000);
 
 // ───────────────────────────── keeper ─────────────────────────────
-// KEEPER_DISABLED=1: run a dev gateway WITHOUT a keeper. Two keepers on one chain race, and a keeper whose database lacks a
-// session's transcript would expire it as "idle" (no survival credit) before the keeper that holds the messages can close it.
-if ((isEmbedded() || process.env.RUN_KEEPER === "true") && process.env.KEEPER_DISABLED !== "1") {
+// KEEPER_DISABLED=1 keeps the indexer but turns off the closer and Gauntlet (see apps/keeper): two full keepers on one chain race.
+if (isEmbedded() || process.env.RUN_KEEPER === "true") {
   const { startKeeper } = await import("@arena/keeper");
   await startKeeper(db, { log: (m: string) => app.log.info(`[keeper] ${m}`) });
 }

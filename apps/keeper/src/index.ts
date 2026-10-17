@@ -93,11 +93,15 @@ export async function startKeeper(db: Db, opts: { log?: Logger } = {}) {
     const n = await indexer.tick();
     if (n) log(`indexed ${n} events`);
   }, log);
-  loop("closer", 15_000, async () => {
-    await closeExpired(db, log);
-    await publishOrphanBreaches(db, log);
-  }, log);
-  loop("gauntlet", 5_000, () => processGauntletJobs(db, log), log);
+  // KEEPER_DISABLED=1 (dev gateway next to a hosted one): keep indexing so the UI stays current, but do not close
+  // sessions or run Gauntlet replays. A keeper whose database lacks a session's transcript would expire it as idle.
+  if (process.env.KEEPER_DISABLED !== "1") {
+    loop("closer", 15_000, async () => {
+      await closeExpired(db, log);
+      await publishOrphanBreaches(db, log);
+    }, log);
+    loop("gauntlet", 5_000, () => processGauntletJobs(db, log), log);
+  }
   loop("refresh", 30_000, async () => {
     const agents = await db.query<{ id: string }>(`SELECT id FROM agents`);
     for (const a of agents) await refreshAgent(db, BigInt(a.id));
