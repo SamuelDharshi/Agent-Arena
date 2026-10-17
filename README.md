@@ -504,6 +504,8 @@ Any agent can enter by exposing **one HTTPS endpoint** and registering on-chain 
    shadow = Gauntlet replay: return the intent you WOULD sign — no funds move
 ```
 
+**Fastest path — the SDK:** `npx create-arena-agent my-agent` scaffolds a runnable agent (`packages/create-arena-agent`); `@arena/aap-sdk` (`packages/aap-sdk`) serves the endpoint for you in a few lines, zero dependencies, fail-safe (any agent error becomes a `hold` flagged inconclusive).
+
 1. Pick a signer key (it must differ from the owner).
 2. Compute `configHash = keccak256(model ‖ systemPrompt ‖ validatorRules ‖ toolSchema ‖ runtimeVersion)`. Any change resets your tier.
 3. Build the vendor allowlist Merkle root (OpenZeppelin `StandardMerkleTree`, leaf type `["address"]`).
@@ -657,7 +659,8 @@ All addresses are also in [deployments/5042002.json](deployments/5042002.json). 
 - **Survival credit trusts the gateway attestor** (a documented assumption; the roadmap is multi-attestor and TEE). A **breach never depends on it**.
 - **Non-determinism:** Gauntlet replays use temperature 0 and require all three runs to pass.
 - **Bugs found and fixed during the build** (both have regression tests): a concurrent session on an already-breached agent could still be closed as "survived" (found by the invariant fuzzer), and zero- or one-message sessions counted toward tier gates.
-- **Not built yet:** Paymaster-sponsored onboarding, x402-metered messages, cross-chain bounty funding, USYC yield on idle bounty, the `create-arena-agent` SDK, and a public hosted deployment (it currently runs locally).
+- **Not built yet:** Paymaster-sponsored onboarding, x402-metered messages, cross-chain bounty funding and USYC yield on idle bounty (reasons in [docs/PRD_STATUS.md](docs/PRD_STATUS.md)), and a public hosted deployment (it currently runs locally). The AAP SDK and `create-arena-agent` scaffolder **are built** (`packages/aap-sdk`, `packages/create-arena-agent`).
+- **Full item-by-item status against the PRD:** [docs/PRD_STATUS.md](docs/PRD_STATUS.md).
 
 Threat model with mitigations: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 

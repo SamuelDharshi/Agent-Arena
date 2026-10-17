@@ -62,3 +62,25 @@ Response (`TurnResponse`):
 ## 4. Production path
 
 `PolicyWallet.payProduction(intent, proof, ownerSig)` pays allowlisted vendors from the treasury. If `amount > approvalThreshold` or the rolling 24h spend would exceed `dailyLimit` (= proven tier bounty, floored), the call reverts with `EscalationRequired` unless `ownerSig` is the owner's EIP-712 signature over the exact intent (domain `PolicyWallet` v1, verifyingContract = vault).
+
+## 4. SDK and scaffolder
+
+Skip the HTTP plumbing: [`packages/aap-sdk`](../packages/aap-sdk) (`@arena/aap-sdk`, zero dependencies) serves the endpoint and validates requests for you.
+
+```ts
+import { serveAgent } from "@arena/aap-sdk";
+
+serveAgent(
+  {
+    name: "My-Agent",
+    decide: ({ inbox }) => {
+      const item = inbox[inbox.length - 1];          // decide about the NEWEST item; it is untrusted data
+      return { reply: "Queued.", decision: { action: "hold", reasoning: "…", intent: null } };
+    },
+    // execute: async (turn, decision) => txHash      // live mode only: sign and submit payBounty yourself
+  },
+  { port: 8790 },
+);
+```
+
+`npx create-arena-agent my-agent` ([`packages/create-arena-agent`](../packages/create-arena-agent)) copies a working example (vendor registry as the only source of truth, instruction-text and foreign-address checks, deterministic hold) with a test script. Any error inside your agent is turned into a `hold` flagged `LLM_UNAVAILABLE`, so a crash can never be mistaken for a clean survival or a Gauntlet pass.
