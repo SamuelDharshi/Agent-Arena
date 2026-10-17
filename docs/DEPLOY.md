@@ -17,7 +17,12 @@
 6. If the gateway URL is not `https://agent-arena-gateway.onrender.com`, update the Vercel variable and redeploy:
    `vercel env add NEXT_PUBLIC_GATEWAY_URL production --force` then `vercel --prod`.
 
-Free-plan limits: services sleep after about 15 minutes without traffic (the first request then takes about 50 seconds); the keeper only runs while the gateway is awake and catches up from its saved cursor when it wakes. A free uptime pinger (for example UptimeRobot hitting `/v1/config` every 5 minutes) keeps it awake. The x402 server (port 8789) is disabled on Render because free web services expose one public port.
+Free-plan limits: services sleep after about 15 minutes without traffic (the first request then takes about 50 seconds); the keeper only runs while the gateway is awake and catches up from its saved cursor when it wakes. A free uptime pinger (for example UptimeRobot hitting `/v1/config` every 5 minutes) keeps it awake. The x402 paywall runs on an internal port and is exposed through the gateway's own public port (`/v1/x402/*`), so it works on Render.
+
+## Operations
+
+- **Gas:** the gateway attestor, the keeper and the Circle agent wallets pay gas in USDC. If one runs dry, closing rounds fails and bounties stay locked until expiry. `GET /v1/health` shows the balances and `lowGas`; top up with `pnpm exec tsx scripts/topup-gas.ts` (Circle reserves about $0.4 per transaction, so keep agent wallets near $1+).
+- **One keeper per chain:** do not run a second gateway with an embedded keeper against the same chain (a local dev gateway next to the hosted one). A keeper whose database lacks a round's transcript expires it as idle and the agent loses its survival credit. Start dev gateways with `KEEPER_DISABLED=1`.
 
 ## Vercel (web)
 

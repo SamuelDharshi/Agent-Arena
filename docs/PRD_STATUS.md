@@ -27,7 +27,7 @@ Live numbers are public at `/v1/metrics` on the gateway (agents registered, sess
 | P1-2 | Keeper Gauntlet + suspension | 🟡 | Built and tested; **0 Gauntlet runs** for the same reason |
 | P1-3 | AAP SDK + `create-arena-agent`, ≥ 3 external agents | 🟡 | SDK and scaffolder built and tested ([`packages/aap-sdk`](../packages/aap-sdk), [`packages/create-arena-agent`](../packages/create-arena-agent)). **No external agents onboarded** — 👤 outreach |
 | P1-4 | Paymaster-sponsored onboarding | ❌ | See "Circle tools" below |
-| P1-5 | x402-metered messages | ✅ | `POST /v1/x402/sessions/:sid/messages` ($0.005, Circle Gateway Nanopayments, Arc testnet). Live: buyer deposited into the Gateway Wallet, paid three messages with gasless EIP-3009 authorizations, session ended and attested. API/CLI path (`pnpm x402:demo`); the web attack page does not use it yet |
+| P1-5 | x402-metered messages | ✅ | `POST /v1/x402/sessions/:sid/messages` ($0.005, Circle Gateway Nanopayments, Arc testnet), live on the hosted gateway: a buyer deposited into the Gateway Wallet, paid three messages with gasless EIP-3009 authorizations, and the round ended with an attested close. API/agent path (`pnpm x402:demo`); the web attack page does not use it yet |
 | P1-6 | Cross-chain funding via Gateway/CCTP | ❌ | See "Circle tools" below |
 | P1-7 | Decision-log anchoring + audit viewer | ✅ | Hash-chained log, on-chain `DecisionAnchored`, viewer on the agent page |
 
