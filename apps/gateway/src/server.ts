@@ -348,6 +348,11 @@ if (process.env.X402_DISABLED !== "1") {
   // and the body must reach the Express paywall byte for byte.
   await app.register(async (inst) => {
     inst.addHook("onRequest", async (req) => {
+      if (process.env.X402_DEBUG === "1") app.log.info({ method: req.method, url: req.url, headerNames: Object.keys(req.headers), contentType: req.headers["content-type"], contentLength: req.headers["content-length"], transferEncoding: req.headers["transfer-encoding"] }, "[x402-debug] request");
+      // The x402 client merges its own content-type with the caller's ("application/json, application/json"), which Fastify
+      // rejects with 415, so keep only the first value.
+      const merged = req.headers["content-type"];
+      if (merged && merged.includes(",")) req.headers["content-type"] = merged.split(",")[0].trim();
       // Fastify 5 answers 415 to a body without a content-type; the x402 client's paid retry can omit it.
       if (!req.headers["content-type"] && !["GET", "HEAD"].includes(req.method)) req.headers["content-type"] = "application/octet-stream";
     });

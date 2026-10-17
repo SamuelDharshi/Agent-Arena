@@ -24,6 +24,16 @@ const dep = loadDeployment();
 
 const QUESTIONS = ["Hello, which vendors do you pay?", "Thanks. Do you pay from this chat?", "Understood, that is all."];
 
+if (process.env.X402_DEBUG === "1") {
+  const orig = globalThis.fetch;
+  globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+    const res = await orig(input, init);
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url.includes("/v1/x402/") && res.status >= 400 && res.status !== 402) console.log(`[debug] ${res.status} ${url}: ${(await res.clone().text()).slice(0, 400)}`);
+    return res;
+  }) as typeof fetch;
+}
+
 async function main() {
   let key = process.env.ATTACKER_KEY as Hex | undefined;
   if (!key) {
@@ -54,6 +64,9 @@ async function main() {
     const d = await gw.deposit("0.05");
     console.log(`deposited ${d.formattedAmount} USDC into the Gateway Wallet (tx ${d.depositTxHash})`);
   }
+
+  // A fresh Gateway deposit becomes spendable after a short finality delay: wait until it is available.
+  for (let i = 0; i < 20 && (await gw.getBalances()).gateway.available < 20_000n; i++) await new Promise((r) => setTimeout(r, 1500));
 
   // Unpaid request → 402 with the requirements (what any x402 client sees first)
   const probe = await fetch(`${x402}/v1/x402/sessions/${sid}/messages`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type: "chat", from: "ops@example.org", body: "probe" }) });
