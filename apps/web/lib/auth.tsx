@@ -1,9 +1,10 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { useAccount, useSignMessage } from "wagmi";
+import { useAccount } from "wagmi";
 import { createSiweMessage } from "viem/siwe";
 import { api } from "./api";
 import { CHAIN_ID, GATEWAY } from "./wagmi";
+import { ensureArc, useArenaWallet } from "./tx";
 
 interface AuthCtx {
   token: string | null;
@@ -27,7 +28,7 @@ function readStored(): { token: string; address: string } | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { address } = useAccount();
-  const { signMessageAsync } = useSignMessage();
+  const wallet = useArenaWallet();
   const [state, setState] = useState<{ token: string; address: string } | null>(null);
   const [signingIn, setSigningIn] = useState(false);
 
@@ -52,7 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         version: "1",
         statement: `Sign in to Agent Arena (${GATEWAY})`,
       });
-      const signature = await signMessageAsync({ message });
+      if (!wallet) throw new Error("wallet is still connecting, try again in a second");
+      await ensureArc(wallet);
+      const signature = await wallet.signMessage({ message });
       const res = await api<{ token: string; address: string }>("/v1/auth/siwe/verify", {
         method: "POST",
         body: JSON.stringify({ message, signature }),
@@ -68,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setSigningIn(false);
     }
-  }, [address, signMessageAsync, state]);
+  }, [address, wallet, state]);
 
   const signOut = useCallback(() => {
     setState(null);

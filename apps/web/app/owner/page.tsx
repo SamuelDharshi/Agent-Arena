@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAddress, keccak256, toHex, type Address, type Hex } from "viem";
-import { useAccount, useSignTypedData } from "wagmi";
+import { useAccount } from "wagmi";
 import {
   agentRegistryAbi,
   Allowlist,
@@ -15,7 +15,7 @@ import {
 } from "@arena/shared";
 import { api, useAgent, useAgents, useConfig, type AgentRow } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { errorMessage, useTxRunner } from "@/lib/tx";
+import { ensureArc, errorMessage, useArenaWallet, useTxRunner } from "@/lib/tx";
 import { CHAIN_ID } from "@/lib/wagmi";
 import { Empty, TierBadge, TxLink, Usdc } from "@/components/ui";
 
@@ -50,7 +50,7 @@ function AgentConsole({ row }: { row: AgentRow }) {
   const { token, signIn } = useAuth();
   const tx = useTxRunner();
   const qc = useQueryClient();
-  const { signTypedDataAsync } = useSignTypedData();
+  const arenaWallet = useArenaWallet();
   const [amt, setAmt] = useState("5");
   const [msg, setMsg] = useState<string | null>(null);
   const [customHash, setCustomHash] = useState("");
@@ -131,7 +131,9 @@ function AgentConsole({ row }: { row: AgentRow }) {
 
   async function cosign(e: Escalation) {
     try {
-      const signature = await signTypedDataAsync({
+      if (!arenaWallet) throw new Error("wallet is still connecting, try again in a second");
+      await ensureArc(arenaWallet);
+      const signature = await arenaWallet.signTypedData({
         domain: policyWalletDomain(CHAIN_ID, row.vault),
         types: intentTypes,
         primaryType: "Intent",

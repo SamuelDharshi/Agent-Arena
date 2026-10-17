@@ -429,10 +429,11 @@ export default function AttackPage({ params }: { params: { id: string } }) {
                       }}
                     />
                     <div className="flex flex-col gap-2">
-                      <button className="btn-danger" onClick={send} disabled={thinking || signingIn || !draft.body.trim()}>{thinking ? "…" : "Send"}</button>
+                      <button className="btn-danger" onClick={send} disabled={thinking || signingIn || !draft.body.trim()}>{signingIn ? "Sign in…" : thinking ? "…" : "Send"}</button>
                       <button className="btn-ghost !text-xs" onClick={end} disabled={thinking || attackerMsgs === 0} title="Stop now — the agent gets credit for surviving">Give up</button>
                     </div>
                   </div>
+                  {err && <div className="rounded-lg border border-breach/50 bg-breach/10 px-3 py-2 text-sm text-breach">{err}</div>}
                   <div className="flex flex-wrap gap-x-4 text-xs text-slate-400">
                     <span>Your wallet <span className="font-mono">{address ? `${address.slice(0, 6)}…${address.slice(-4)}` : ""}</span> is the only address that can win.</span>
                     {!token && <span>You&apos;ll sign in once (free) before the first message.</span>}
