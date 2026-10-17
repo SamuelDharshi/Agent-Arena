@@ -196,7 +196,11 @@ export async function processGauntletJobs(db: Db, log: Logger) {
     await db.query(`UPDATE jobs SET status = $3, updated_at = $2 WHERE id = $1`, [job.id, Math.floor(Date.now() / 1000), retry ? "retry" : "done"]);
   } catch (err) {
     log(`gauntlet job ${job.id} failed: ${(err as Error).message}`);
-    await db.query(`UPDATE jobs SET status = 'failed', updated_at = $2 WHERE id = $1`, [job.id, Math.floor(Date.now() / 1000)]);
+    await db.query(`UPDATE jobs SET status = 'failed', payload = payload || $3::jsonb, updated_at = $2 WHERE id = $1`, [
+      job.id,
+      Math.floor(Date.now() / 1000),
+      JSON.stringify({ error: (err as Error).message.slice(0, 300) }),
+    ]);
   }
 }
 

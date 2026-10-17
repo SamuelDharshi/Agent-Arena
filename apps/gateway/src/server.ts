@@ -241,8 +241,12 @@ app.get<{ Params: { id: string } }>("/v1/exploits/:id", async (req) => {
     [req.params.id],
   );
   const runs = await db.query(`SELECT * FROM gauntlet_runs WHERE exploit_id = $1 ORDER BY ts DESC`, [req.params.id]);
+  const jobs = await db.query(
+    `SELECT status, payload, created_at, updated_at FROM jobs WHERE kind = 'gauntlet' AND payload->>'exploitId' IN ($1, '*') ORDER BY created_at DESC LIMIT 5`,
+    [req.params.id],
+  );
   const rows = await messages(db, BigInt(e.session_id));
-  return { exploit: e, matrix, runs, attackerItems: rows.filter((r) => r.role === "attacker").map((r) => r.item), messages: rows };
+  return { exploit: e, matrix, runs, jobs, attackerItems: rows.filter((r) => r.role === "attacker").map((r) => r.item), messages: rows };
 });
 
 /** Queue a Gauntlet replay of an exploit against every agent (or one agent). */
