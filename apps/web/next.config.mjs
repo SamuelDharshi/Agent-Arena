@@ -15,7 +15,7 @@ for (const f of [".env", profile ? `.env.${profile}` : null]) {
 const env = {
   NEXT_PUBLIC_GATEWAY_URL: process.env.NEXT_PUBLIC_GATEWAY_URL || merged.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:8787",
   NEXT_PUBLIC_CHAIN_ID: process.env.NEXT_PUBLIC_CHAIN_ID || merged.ARC_CHAIN_ID || "5042002",
-  NEXT_PUBLIC_RPC_URL: process.env.NEXT_PUBLIC_RPC_URL || merged.ARC_RPC_URL || "https://rpc.testnet.arc.network",
+  NEXT_PUBLIC_RPC_URL: process.env.NEXT_PUBLIC_RPC_URL || merged.ARC_RPC_URL || "https://rpc.testnet.arc.io",
 };
 
 /** @type {import('next').NextConfig} */
