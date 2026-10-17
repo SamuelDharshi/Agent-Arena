@@ -65,13 +65,15 @@ app.post<{ Body: { message: string; signature: Hex } }>("/v1/auth/siwe/verify", 
 app.get("/v1/auth/me", async (req) => ({ address: authAddress(req) }));
 
 // ───────────────────────────── agents ─────────────────────────────
-app.get("/v1/agents", async () => {
+// Retired agents (endpoint pointed at a *.invalid host) and verification fixtures are hidden unless ?all=1.
+app.get<{ Querystring: { all?: string } }>("/v1/agents", async (req) => {
+  const hideRetired = req.query.all === "1" ? "" : "WHERE a.endpoint NOT LIKE '%.invalid%'";
   const rows = await db.query(`
     SELECT a.*,
       (SELECT COUNT(*)::int FROM sessions s WHERE s.agent_id = a.id AND s.state = 3) AS sessions_survived,
       (SELECT COUNT(*)::int FROM sessions s WHERE s.agent_id = a.id AND s.state = 1 AND s.expires_at > EXTRACT(EPOCH FROM NOW())) AS live_sessions,
       (SELECT COUNT(*)::int FROM sessions s WHERE s.agent_id = a.id) AS sessions_total
-    FROM agents a ORDER BY a.effective_tier DESC, a.score DESC, a.id ASC`);
+    FROM agents a ${hideRetired} ORDER BY a.effective_tier DESC, a.score DESC, a.id ASC`);
   return rows;
 });
 
