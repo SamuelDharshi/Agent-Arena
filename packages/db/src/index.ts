@@ -32,7 +32,7 @@ async function open(): Promise<Db> {
     const pg = (await import("pg")).default;
     const pool = new pg.Pool({
       connectionString: process.env.DATABASE_URL,
-      ssl: /sslmode=require|neon\.tech|supabase/.test(process.env.DATABASE_URL) ? { rejectUnauthorized: false } : undefined,
+      ssl: /sslmode=require|neon\.tech|supabase|render\.com/.test(process.env.DATABASE_URL) ? { rejectUnauthorized: false } : undefined,
       max: 10,
     });
     db = {
