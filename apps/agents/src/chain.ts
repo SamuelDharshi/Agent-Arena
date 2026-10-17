@@ -4,6 +4,7 @@ import {
   ContractFunctionRevertedError,
   createPublicClient,
   createWalletClient,
+  decodeErrorResult,
   encodeFunctionData,
   http,
   type Address,
@@ -126,6 +127,17 @@ export class ChainRevert extends Error {
 
 function decodeRevert(err: unknown): ChainRevert {
   if (err instanceof BaseError) {
+    // A raw eth_call (we simulate with encoded calldata) surfaces the revert as bare data, not a ContractFunctionRevertedError.
+    const raw = err.walk((e) => typeof (e as { data?: unknown }).data === "string" && ((e as { data: string }).data.startsWith("0x")));
+    const rawData = (raw as { data?: Hex } | null)?.data;
+    if (rawData && rawData.length >= 10) {
+      try {
+        const decoded = decodeErrorResult({ abi: policyWalletAbi, data: rawData });
+        return new ChainRevert(decoded.errorName, decoded.errorName);
+      } catch {
+        /* not a PolicyWallet error: fall through */
+      }
+    }
     const r = err.walk((e) => e instanceof ContractFunctionRevertedError);
     if (r instanceof ContractFunctionRevertedError) {
       const name = r.data?.errorName ?? "Revert";
