@@ -342,18 +342,29 @@ setInterval(() => {
 // through this same public port, so it also works on hosts that publish a single port (Render free plan).
 const x402Port = Number(process.env.X402_PORT ?? 8789);
 if (process.env.X402_DISABLED !== "1") {
-  app.all("/v1/x402/*", async (req, reply) => {
-    const headers: Record<string, string> = {};
-    for (const [k, v] of Object.entries(req.headers)) {
-      if (typeof v === "string" && !["host", "content-length", "connection", "origin", "referer"].includes(k)) headers[k] = v;
-    }
-    const hasBody = !["GET", "HEAD"].includes(req.method);
-    const r = await fetch(`http://127.0.0.1:${x402Port}${req.url}`, { method: req.method, headers, body: hasBody ? JSON.stringify(req.body ?? {}) : undefined });
-    reply.code(r.status);
-    r.headers.forEach((v, k) => {
-      if (!["content-length", "transfer-encoding", "connection", "access-control-allow-origin", "access-control-allow-credentials"].includes(k)) reply.header(k, v);
+  // Own plugin scope with a catch-all raw-body parser: the x402 client's paid retry can omit the content-type header,
+  // and the body must reach the Express paywall byte for byte.
+  await app.register(async (inst) => {
+    inst.addHook("onRequest", async (req) => {
+      // Fastify 5 answers 415 to a body without a content-type; the x402 client's paid retry can omit it.
+      if (!req.headers["content-type"] && !["GET", "HEAD"].includes(req.method)) req.headers["content-type"] = "application/octet-stream";
     });
-    return reply.send(Buffer.from(await r.arrayBuffer()));
+    inst.removeAllContentTypeParsers();
+    inst.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => done(null, body));
+    inst.all("/v1/x402/*", async (req, reply) => {
+      const headers: Record<string, string> = {};
+      for (const [k, v] of Object.entries(req.headers)) {
+        if (typeof v === "string" && !["host", "content-length", "connection", "origin", "referer"].includes(k)) headers[k] = v;
+      }
+      if (!headers["content-type"] || headers["content-type"] === "application/octet-stream") headers["content-type"] = "application/json";
+      const hasBody = !["GET", "HEAD"].includes(req.method) && Buffer.isBuffer(req.body);
+      const r = await fetch(`http://127.0.0.1:${x402Port}${req.url}`, { method: req.method, headers, body: hasBody ? new Uint8Array(req.body as Buffer) : undefined });
+      reply.code(r.status);
+      r.headers.forEach((v, k) => {
+        if (!["content-length", "transfer-encoding", "connection", "access-control-allow-origin", "access-control-allow-credentials"].includes(k)) reply.header(k, v);
+      });
+      return reply.send(Buffer.from(await r.arrayBuffer()));
+    });
   });
 }
 
