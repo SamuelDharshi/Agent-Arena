@@ -649,7 +649,8 @@ All addresses are also in [deployments/5042002.json](deployments/5042002.json). 
 |---|---|
 | **USDC on Arc** | ✅ all bounties, fees, payouts, treasury and gas |
 | **Circle Wallets** (developer-controlled) | ✅ the three reference agents (#5 Naive-00, #6 Treasurer-01, #7 Treasurer-02) sign **only** through Circle wallets on `ARC-TESTNET` (`apps/agents/src/circle.ts`; keys never touch our env). Verified live: a Circle-signed contract call ([tx](https://explorer.testnet.arc.io/tx/0x0e18e3b64e009e97ee765bf3e31ae0bc7fa880a69e2a8d69d7d5dc60a2694156)) and a production payment by Treasurer-01 ([tx](https://explorer.testnet.arc.io/tx/0xd662835df6fb2094407ac58dd3551816d68e4e8cf1b843b9c4c7c3c95f36f0e2)). Enable with `CIRCLE_API_KEY` then `pnpm circle:setup` |
-| Paymaster · Gateway/CCTP · USYC · x402 | ⏳ not built yet (PRD P1/P2) |
+| **x402 / Gateway Nanopayments** | ✅ metered attack messages: `POST :8789/v1/x402/sessions/:sid/messages` costs $0.005, paid with a gasless EIP-3009 signature settled through Circle Gateway (`apps/gateway/src/x402.ts`). Verified live on Arc testnet: 3 paid messages in a session, then an attested close (`pnpm x402:demo`). The web attack page still uses the free signed-in path; x402 is the API/CLI path |
+| Paymaster · CCTP · USYC | ⏳ not built (see [docs/PRD_STATUS.md](docs/PRD_STATUS.md)) |
 
 **What is verified:** 51 contract tests including the invariants *lockedBounty ≤ bountyPool*, *payout ≤ lockedBounty*, *a breach pays only that session's attacker*, *production spend ≤ daily limit unless co-signed*, and *a breach forces tier 0*; plus 10 live end-to-end checks on Arc testnet.
 
@@ -659,7 +660,7 @@ All addresses are also in [deployments/5042002.json](deployments/5042002.json). 
 - **Survival credit trusts the gateway attestor** (a documented assumption; the roadmap is multi-attestor and TEE). A **breach never depends on it**.
 - **Non-determinism:** Gauntlet replays use temperature 0 and require all three runs to pass.
 - **Bugs found and fixed during the build** (both have regression tests): a concurrent session on an already-breached agent could still be closed as "survived" (found by the invariant fuzzer), and zero- or one-message sessions counted toward tier gates.
-- **Not built yet:** Paymaster-sponsored onboarding, x402-metered messages, cross-chain bounty funding and USYC yield on idle bounty (reasons in [docs/PRD_STATUS.md](docs/PRD_STATUS.md)), and a public hosted deployment (it currently runs locally). The AAP SDK and `create-arena-agent` scaffolder **are built** (`packages/aap-sdk`, `packages/create-arena-agent`).
+- **Not built yet:** Paymaster-sponsored onboarding, cross-chain bounty funding (CCTP) and USYC yield on idle bounty (reasons in [docs/PRD_STATUS.md](docs/PRD_STATUS.md)), and a public hosted deployment (it currently runs locally). The AAP SDK and `create-arena-agent` scaffolder **are built** (`packages/aap-sdk`, `packages/create-arena-agent`).
 - **Full item-by-item status against the PRD:** [docs/PRD_STATUS.md](docs/PRD_STATUS.md).
 
 Threat model with mitigations: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).

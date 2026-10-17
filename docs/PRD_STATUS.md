@@ -2,7 +2,7 @@
 
 Checked against [agent-arena-prd.md](../agent-arena-prd.md) on 2026-10-17. Legend: ✅ done and exercised on Arc testnet · 🟡 built, but not yet exercised live (or only partly) · ❌ not built · 👤 needs the project owner.
 
-Live numbers (`/v1/metrics`): 7 registered agents (3 active reference agents on Circle wallets), 4 attackers, 5 sessions opened (4 survived, 1 breach by the verification fixture), $8.95 moved on the production path (4 autonomous payments, 1 escalation), $0 exploits published so far.
+Live numbers (`/v1/metrics`, before the x402 run): 7 registered agents (3 active reference agents on Circle wallets), 4 attackers, 5 sessions opened (4 survived, 1 breach by the verification fixture), $8.95 moved on the production path (4 autonomous payments, 1 escalation), 0 exploits published so far.
 
 ## P0 — the demo-able core
 
@@ -27,7 +27,7 @@ Live numbers (`/v1/metrics`): 7 registered agents (3 active reference agents on 
 | P1-2 | Keeper Gauntlet + suspension | 🟡 | Built and tested; **0 Gauntlet runs** for the same reason |
 | P1-3 | AAP SDK + `create-arena-agent`, ≥ 3 external agents | 🟡 | SDK and scaffolder built and tested ([`packages/aap-sdk`](../packages/aap-sdk), [`packages/create-arena-agent`](../packages/create-arena-agent)). **No external agents onboarded** — 👤 outreach |
 | P1-4 | Paymaster-sponsored onboarding | ❌ | See "Circle tools" below |
-| P1-5 | x402-metered messages | ❌ | See "Circle tools" below |
+| P1-5 | x402-metered messages | ✅ | `POST /v1/x402/sessions/:sid/messages` ($0.005, Circle Gateway Nanopayments, Arc testnet). Live: buyer deposited into the Gateway Wallet, paid three messages with gasless EIP-3009 authorizations, session ended and attested. API/CLI path (`pnpm x402:demo`); the web attack page does not use it yet |
 | P1-6 | Cross-chain funding via Gateway/CCTP | ❌ | See "Circle tools" below |
 | P1-7 | Decision-log anchoring + audit viewer | ✅ | Hash-chained log, on-chain `DecisionAnchored`, viewer on the agent page |
 
@@ -42,7 +42,7 @@ P2 (USYC float, auto-patch assistant, category budgets, EURC, multi-attestor, at
 | Circle Contracts | ❌ | Contracts were deployed with Foundry scripts, not through Circle's Contracts API |
 | Paymaster | ❌ | Circle's Paymaster page lists Arbitrum, Avalanche, Base, Ethereum, Optimism, Polygon and Unichain and **not Arc**, while the 2025-10-27 release notes say Arc testnet was added (see [FEEDBACK.md](../FEEDBACK.md)). On Arc, gas is already USDC, so a "pay gas in USDC" paymaster adds little; *sponsored* gas would need ERC-4337 smart accounts for attackers (a different wallet stack than the injected wallets used today) |
 | Gateway / CCTP | ❌ | Needs a funded second chain to test; not attempted |
-| x402 / Nanopayments | ❌ | Gateway Nanopayments supports Arc, but metering needs each attacker to hold a Gateway balance and sign EIP-3009 authorizations in the browser |
+| x402 / Nanopayments | ✅ | Seller middleware on the gateway (port 8789) + buyer demo; settled through `gateway-api-testnet.circle.com` |
 | USYC, EURC | ❌ | Not attempted |
 
 ## Bugs found and fixed while completing the checks
