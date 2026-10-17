@@ -39,7 +39,7 @@ P2 (USYC float, auto-patch assistant, category budgets, EURC, multi-attestor, at
 |---|---|---|
 | USDC on Arc | ✅ | All money, fees and gas |
 | Circle Wallets | ✅ | The three active agents sign **only** through Circle developer-controlled wallets; entity secret registered; production payments and `anchorDecision` verified |
-| Circle Contracts | ❌ | Contracts were deployed with Foundry scripts, not through Circle's Contracts API |
+| Circle Contracts | ✅ (API) | A `GrantPool` was deployed **through Circle's Contracts API from a Circle wallet** ([0x6cb0…6783](https://explorer.testnet.arc.io/address/0x6cb06dbf56c153c7c45fd40f0a75edf446aa6783), `scripts/circle-contracts-demo.ts`). The production contracts were deployed with Foundry |
 | Paymaster | ❌ | Circle's Paymaster page lists Arbitrum, Avalanche, Base, Ethereum, Optimism, Polygon and Unichain and **not Arc**, while the 2025-10-27 release notes say Arc testnet was added (see [FEEDBACK.md](../FEEDBACK.md)). On Arc, gas is already USDC, so a "pay gas in USDC" paymaster adds little; *sponsored* gas would need ERC-4337 smart accounts for attackers (a different wallet stack than the injected wallets used today) |
 | Gateway / CCTP | ❌ | Needs a funded second chain to test; not attempted |
 | x402 / Nanopayments | ✅ | Seller middleware on the gateway (port 8789) + buyer demo; settled through `gateway-api-testnet.circle.com` |
