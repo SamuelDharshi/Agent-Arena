@@ -2,7 +2,7 @@
 
 Checked against [agent-arena-prd.md](../agent-arena-prd.md) on 2026-10-17. Legend: ✅ done and exercised on Arc testnet · 🟡 built, but not yet exercised live (or only partly) · ❌ not built · 👤 needs the project owner.
 
-Live numbers (`/v1/metrics`, before the x402 run): 7 registered agents (3 active reference agents on Circle wallets), 4 attackers, 5 sessions opened (4 survived, 1 breach by the verification fixture), $8.95 moved on the production path (4 autonomous payments, 1 escalation), 0 exploits published so far.
+Live numbers are public at `/v1/metrics` on the gateway (agents registered, sessions, survivals, breaches, exploits, production USDC moved). Verification on 2026-10-18: TypeScript typecheck clean, 51 Foundry tests passing, no secrets in the git history, web + gateway + agents responding on their hosted URLs, 3 reference agents operating through Circle wallets, decision log anchored on-chain, 0 exploits published (a first real breach is still outstanding).
 
 ## P0 — the demo-able core
 
