@@ -35,16 +35,20 @@
     "circle:setup": "tsx scripts/circle-setup.ts",
     "verify:arc": "tsx scripts/verify-arc.ts",
     "arc:repro": "tsx scripts/arc-underpriced-repro.ts",
-    "arc:doctor": "tsx scripts/arc-doctor.ts"
+    "arc:doctor": "tsx scripts/arc-doctor.ts",
+    "x402:demo": "tsx scripts/x402-demo.ts"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "@circle-fin/x402-batching": "^3.5.0",
+    "@openzeppelin/merkle-tree": "^1.0.7",
     "@types/node": "^22.9.0",
+    "@x402/core": "^2.28.0",
+    "@x402/evm": "^2.28.0",
+    "cross-env": "^7.0.3",
     "dotenv": "^16.4.5",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
-    "viem": "^2.21.45",
-    "@openzeppelin/merkle-tree": "^1.0.7",
-    "@anthropic-ai/sdk": "^0.133.0",
-    "cross-env": "^7.0.3"
+    "viem": "^2.21.45"
   }
 }

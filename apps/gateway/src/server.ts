@@ -10,6 +10,7 @@ import { env } from "@arena/shared/node";
 import { authAddress, issueToken, newNonce, verifySiwe } from "./auth";
 import { publish, sse } from "./bus";
 import { attestor, dep, getAgent, getSession, publicClient } from "./chain";
+import { startX402 } from "./x402";
 import { agentMeta, endSession, HttpError, messages, publishSessionExploit, relayMessage, transcriptHash, type MessageInput } from "./sessions";
 
 const db: Db = await getDb();
@@ -317,4 +318,5 @@ if (isEmbedded() || process.env.RUN_KEEPER === "true") {
 
 const port = Number(process.env.PORT || process.env.GATEWAY_PORT || 8787);
 await app.listen({ port, host: "0.0.0.0" });
+if (process.env.X402_ENABLED !== "0") startX402(db, attestor.address); // P1-5: metered attack messages via Circle Gateway Nanopayments
 app.log.info(`Arena gateway on :${port} · db=${db.kind} · attestor=${attestor.address}`);
