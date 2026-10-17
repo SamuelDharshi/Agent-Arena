@@ -33,7 +33,9 @@
     "start:gateway": "pnpm --filter @arena/gateway start",
     "start:agents": "pnpm --filter @arena/agents start",
     "circle:setup": "tsx scripts/circle-setup.ts",
-    "verify:arc": "tsx scripts/verify-arc.ts"
+    "verify:arc": "tsx scripts/verify-arc.ts",
+    "arc:repro": "tsx scripts/arc-underpriced-repro.ts",
+    "arc:doctor": "tsx scripts/arc-doctor.ts"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
