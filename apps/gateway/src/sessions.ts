@@ -303,7 +303,9 @@ export async function endSession(db: Db, sid: bigint, addr: Address | null) {
     if (msgCount === 0) {
       throw new HttpError(409, "no conclusive turns — nothing to attest; the session will expire and the fee is refunded");
     }
-    const endedAt = BigInt(Math.min(Math.floor(Date.now() / 1000), Number(s.expiresAt)));
+    // Use CHAIN time, not the gateway clock: closeSession reverts (BadAttestation) if endedAt is ahead of the block timestamp,
+    // and block timestamps on Arc lag wall-clock time by up to a couple of seconds.
+    const endedAt = BigInt(Math.min(Math.floor(Date.now() / 1000), Number(s.expiresAt), await chainNow()));
     const root = transcriptRoot(rows);
     const { txHash, signature } = await attestAndClose({ sid, msgCount, transcriptRoot: root, endedAt });
     await db.query(`UPDATE sessions SET state = 3, msg_count = $2, transcript_root = $3, close_tx = $4, closed_at = $5 WHERE id = $1 AND state = 1`, [
