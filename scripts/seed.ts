@@ -16,16 +16,18 @@ const dep = loadDeployment();
 const owner = wallet("DEPLOYER_KEY");
 const agentsUrl = (process.env.AGENTS_PUBLIC_URL || "http://localhost:8788").replace(/\/$/, "");
 
-const bountyAmt = parseUsdc(process.env.SEED_BOUNTY_USDC || "12");
-const treasuryAmt = parseUsdc(process.env.SEED_TREASURY_USDC || "8");
+// NEW_AGENT_* override the .env seed amounts, and SEED_ONLY=slug,slug limits the run (used to add agents to a live deployment).
+const only = (process.env.SEED_ONLY || "").split(",").filter(Boolean);
+const bountyAmt = parseUsdc(process.env.NEW_AGENT_BOUNTY_USDC || process.env.SEED_BOUNTY_USDC || "12");
+const treasuryAmt = parseUsdc(process.env.NEW_AGENT_TREASURY_USDC || process.env.SEED_TREASURY_USDC || "8");
 const floor = parseUsdc(process.env.SEED_FLOOR_DAILY_USDC || "2");
 
 async function main() {
-  const need = (bountyAmt + treasuryAmt) * BigInt(AGENTS.length);
+  const need = (bountyAmt + treasuryAmt) * BigInt(only.length || AGENTS.length);
   const bal = await publicClient.readContract({ address: dep.usdc, abi: erc20Abi, functionName: "balanceOf", args: [owner.account.address] });
   console.log(`Owner ${owner.account.address} has ${formatUsdc(bal)} · seeding needs up to ${formatUsdc(need)}`);
 
-  for (const a of AGENTS) {
+  for (const a of AGENTS.filter((x) => !only.length || only.includes(x.slug))) {
     const signer = await signerAddress(a);
     // Signers pay their own gas in USDC on Arc (Circle wallets start empty).
     const gas = await publicClient.getBalance({ address: signer });
