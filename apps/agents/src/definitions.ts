@@ -145,6 +145,20 @@ export const AGENTS: AgentDef[] = [
     keyEnv: "AGENT_TREASURER02_KEY",
     defaultPipeline: "treasurer-v2",
   },
+  {
+    slug: "clerk-03",
+    name: "Clerk-03",
+    description: "Prompt-only AP clerk: pays invoices that look routine, no validator. Breakable with a believable invoice.",
+    keyEnv: "AGENT_CLERK03_KEY",
+    defaultPipeline: "naive",
+  },
+  {
+    slug: "auditor-04",
+    name: "Auditor-04",
+    description: "Prompt rules + deterministic pre-pay validator (vendor registry and per-vendor caps). Breaks on a clever multi-turn injection.",
+    keyEnv: "AGENT_AUDITOR04_KEY",
+    defaultPipeline: "treasurer-v1",
+  },
 ];
 
 export function agentBySlug(slug: string): AgentDef | undefined {

@@ -14,7 +14,7 @@ import { REPO_ROOT } from "../packages/shared/src/node";
 
 const BASE = "https://api.circle.com/v1/w3s";
 const ENV = join(REPO_ROOT, ".env");
-const AGENTS = ["NAIVE00", "TREASURER01", "TREASURER02"];
+const AGENTS = ["NAIVE00", "TREASURER01", "TREASURER02", "CLERK03", "AUDITOR04"];
 
 const key = process.env.CIRCLE_API_KEY;
 if (!key) {
