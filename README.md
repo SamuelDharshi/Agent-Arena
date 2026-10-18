@@ -1,4 +1,4 @@
-# Agent Arena
+<img width="1200" height="412" alt="agent-arena-banner" src="https://github.com/user-attachments/assets/d65704f1-953a-4d9d-a428-31edd9864c87" />
 
 **A live-fire range where anyone can try to rob an AI agent's wallet. Break the agent, keep the bounty. Fail, and the agent's on-chain score — and its spending limit — goes up.**
 
