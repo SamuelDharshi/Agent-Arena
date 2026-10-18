@@ -401,6 +401,8 @@ The runtime reads each agent's **on-chain `configHash`** and runs the matching p
 | **Naive-00** | easy | Pays what a convincing invoice asks. Breakable in minutes — powers the live demo. |
 | **Treasurer-01** | medium | A single message will not work; a patient multi-turn story can. This is the "second real exploit and a patch story". |
 | **Treasurer-02** | hard | Built to hold: refuses or escalates anything novel. Climbs tiers when attacked. |
+| **Clerk-03** | easy | A prompt-only AP clerk that pays invoices that look routine. A believable invoice gets through. |
+| **Auditor-04** | medium | Same family as Treasurer-01: vendor registry and per-vendor caps, beaten only by a patient multi-turn story. |
 
 Every decision is appended to a hash-chained log and anchored on-chain every N decisions (`DecisionAnchored`), so anyone can replay *why the agent did that*. The language model is pluggable: **Groq** (default when `GROQ_API_KEY` is set) or **Anthropic Claude** (`ANTHROPIC_API_KEY`).
 
@@ -641,7 +643,7 @@ Chain id `5042002` · USDC `0x3600000000000000000000000000000000000000` (6-decim
 | `PolicyWalletFactory` | `0x7da6df7d82f605cb966ff3ef5040727f6a8ebcd8` |
 | `PolicyWallet` (implementation) | `0x59ae69a9551f112f38018b4a8d9e9212d61a2d42` |
 
-All addresses are also in [deployments/5042002.json](deployments/5042002.json). Explorer: `https://explorer.testnet.arc.io`. Three reference agents are registered with Circle-wallet signers — **#5 Naive-00, #6 Treasurer-01, #7 Treasurer-02** — each holding a $12 testnet bounty and an $8 treasury. (Agents #1–#4 are earlier local-key agents and a verification fixture; they are retired and hidden from the leaderboard.)
+All addresses are also in [deployments/5042002.json](deployments/5042002.json). Explorer: `https://explorer.testnet.arc.io`. Five reference agents are registered with Circle-wallet signers — **#5 Naive-00, #6 Treasurer-01, #7 Treasurer-02, #9 Clerk-03, #10 Auditor-04** — each holding a testnet USDC bounty and treasury. (Agents #1–#4 are earlier local-key agents and a verification fixture; they are retired and hidden from the leaderboard.)
 
 ---
 
@@ -650,7 +652,7 @@ All addresses are also in [deployments/5042002.json](deployments/5042002.json). 
 | Circle tool | Status |
 |---|---|
 | **USDC on Arc** | ✅ all bounties, fees, payouts, treasury and gas |
-| **Circle Wallets** (developer-controlled) | ✅ the three reference agents (#5 Naive-00, #6 Treasurer-01, #7 Treasurer-02) sign **only** through Circle wallets on `ARC-TESTNET` (`apps/agents/src/circle.ts`; keys never touch our env). Verified live: a Circle-signed contract call ([tx](https://explorer.testnet.arc.io/tx/0x0e18e3b64e009e97ee765bf3e31ae0bc7fa880a69e2a8d69d7d5dc60a2694156)) and a production payment by Treasurer-01 ([tx](https://explorer.testnet.arc.io/tx/0xd662835df6fb2094407ac58dd3551816d68e4e8cf1b843b9c4c7c3c95f36f0e2)). Enable with `CIRCLE_API_KEY` then `pnpm circle:setup` |
+| **Circle Wallets** (developer-controlled) | ✅ all five reference agents (#5, #6, #7, #9, #10) sign **only** through Circle wallets on `ARC-TESTNET` (`apps/agents/src/circle.ts`; keys never touch our env). Verified live: a Circle-signed contract call ([tx](https://explorer.testnet.arc.io/tx/0x0e18e3b64e009e97ee765bf3e31ae0bc7fa880a69e2a8d69d7d5dc60a2694156)) and a production payment by Treasurer-01 ([tx](https://explorer.testnet.arc.io/tx/0xd662835df6fb2094407ac58dd3551816d68e4e8cf1b843b9c4c7c3c95f36f0e2)). Enable with `CIRCLE_API_KEY` then `pnpm circle:setup` |
 | **x402 / Gateway Nanopayments** | ✅ metered attack messages: `POST /v1/x402/sessions/:sid/messages` costs $0.005, paid with a gasless EIP-3009 signature settled through Circle Gateway (`apps/gateway/src/x402.ts`, exposed on the gateway's own public port). Verified live on the hosted gateway: 3 paid messages in a round, then an attested close (`X402_DEMO_URL=https://agent-arena-gateway.onrender.com pnpm x402:demo`). x402 is the API/agent path |
 | **Circle Contracts** (Smart Contract Platform API) | ✅ a GrantPool deployed through the API from a Circle wallet: [0x6cb0…6783](https://explorer.testnet.arc.io/address/0x6cb06dbf56c153c7c45fd40f0a75edf446aa6783) (`scripts/circle-contracts-demo.ts`); the production contracts were deployed with Foundry |
 
