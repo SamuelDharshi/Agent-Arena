@@ -66,9 +66,10 @@ app.post<{ Body: { message: string; signature: Hex } }>("/v1/auth/siwe/verify", 
 app.get("/v1/auth/me", async (req) => ({ address: authAddress(req) }));
 
 // ───────────────────────────── agents ─────────────────────────────
-// Retired agents (endpoint pointed at a *.invalid host) and verification fixtures are hidden unless ?all=1.
+// Retired agents (endpoint pointed at a *.invalid host), verification fixtures and agents with no bounty yet are hidden unless ?all=1.
+const LISTED = `a.endpoint NOT LIKE '%.invalid%' AND CAST(a.bounty_pool AS NUMERIC) > 0`;
 app.get<{ Querystring: { all?: string } }>("/v1/agents", async (req) => {
-  const hideRetired = req.query.all === "1" ? "" : "WHERE a.endpoint NOT LIKE '%.invalid%'";
+  const hideRetired = req.query.all === "1" ? "" : `WHERE ${LISTED}`;
   const rows = await db.query(`
     SELECT a.*,
       (SELECT COUNT(*)::int FROM sessions s WHERE s.agent_id = a.id AND s.state = 3) AS sessions_survived,
@@ -237,7 +238,7 @@ app.get<{ Params: { id: string } }>("/v1/exploits/:id", async (req) => {
   if (!e) throw new HttpError(404, "unknown exploit");
   const matrix = await db.query(
     `SELECT a.id AS agent_id, a.name, a.status, a.config_hash, g.result, g.run_hash, g.tx, g.ts
-       FROM agents a LEFT JOIN gauntlet_results g ON g.agent_id = a.id AND g.exploit_id = $1 ORDER BY a.id`,
+       FROM agents a LEFT JOIN gauntlet_results g ON g.agent_id = a.id AND g.exploit_id = $1 WHERE ${LISTED} ORDER BY a.id`,
     [req.params.id],
   );
   const runs = await db.query(`SELECT * FROM gauntlet_runs WHERE exploit_id = $1 ORDER BY ts DESC`, [req.params.id]);
