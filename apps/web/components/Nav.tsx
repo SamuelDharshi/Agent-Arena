@@ -20,9 +20,7 @@ export function Nav() {
     <header className={`sticky top-0 z-40 border-b backdrop-blur ${light ? "border-leaf-100 bg-black/90 text-leaf-950" : "border-ink-700/80 bg-ink-950/85"}`}>
       <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-4 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <span className="block h-9 w-9 overflow-hidden rounded-lg bg-black">
-            <img src="/images/main-removebg-preview.png" alt="Agent Arena" className="h-full w-full origin-[50%_30%] scale-[1.9] object-contain object-bottom [filter:brightness(0)_invert(1)]" />
-          </span>
+          <img src="/images/logo.png" alt="Agent Arena" className="h-10 w-10 rounded-lg" />
           <span className={`hidden sm:inline ${light ? "font-heading font-bold" : ""}`}>Agent Arena</span>
         </Link>
         <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm">

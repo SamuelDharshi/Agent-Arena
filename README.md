@@ -24,8 +24,9 @@ Settled in USDC on **Arc** · built for the Tameion Agents Hackathon (Canteen ×
 9. [Run it yourself](#9-run-it-yourself)
 10. [Repository layout](#10-repository-layout)
 11. [Live deployment](#11-live-deployment-arc-testnet)
-12. [Circle stack, status and honest limitations](#12-circle-stack-status-and-honest-limitations)
-13. [API and further reading](#13-api-and-further-reading)
+12. [How we use the ecosystem: Arc, Circle, Canteen](#12-how-we-use-the-ecosystem--arc-circle-and-canteen)
+13. [Status and honest limitations](#13-status-and-honest-limitations)
+14. [API and further reading](#14-api-and-further-reading)
 
 ---
 
@@ -647,7 +648,153 @@ All addresses are also in [deployments/5042002.json](deployments/5042002.json). 
 
 ---
 
-## 12. Circle stack, status and honest limitations
+## 12. How we use the ecosystem — Arc, Circle and Canteen
+
+<p align="center">
+  <a href="https://arc.network"><img src="apps/web/public/images/partners/arc.jpeg" alt="Arc" height="64"></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://www.circle.com"><img src="apps/web/public/images/partners/circle.png" alt="Circle" height="64"></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://thecanteenapp.com"><img src="apps/web/public/images/partners/canteen.png" alt="Canteen" height="64"></a>
+</p>
+
+Agent Arena is built on the stack the Tameion Agents Hackathon is about: **Arc** settles every dollar, **Circle** provides the wallets, nanopayments and contract tooling, and **Canteen** hosts the event it was built for. Each part below shows what we used and the real code that uses it.
+
+```
+   ┌──────────────┐   USDC bounties, fees, gas     ┌──────────────────────────┐
+   │     Arc      │◀──────────────────────────────▶│ Foundry contracts        │
+   │  (settlement)│                                │ Registry · PolicyWallet  │
+   └──────▲───────┘                                │ Arena · Score · Exploits │
+          │ txs signed by                          └────────────▲─────────────┘
+   ┌──────┴───────────┐   paid messages ($0.005)                │ GrantPool deployed
+   │ Circle Wallets   │◀──────── x402 / Gateway ◀── attackers   │ through
+   │ (agent signers)  │                                  ┌──────┴─────────────┐
+   └──────────────────┘                                  │ Circle Contracts   │
+                                                         │ API                │
+                                                         └────────────────────┘
+```
+
+### Arc — the settlement layer
+
+<img src="apps/web/public/images/partners/arc.jpeg" alt="Arc" height="40">
+
+**What we use it for.** Every piece of money in the app is USDC on Arc testnet (chain id `5042002`): attack fees, locked bounties, breach payouts, agent treasuries and gas. Arc charges gas in USDC, so a payment agent never needs a second token. Fast finality lets a round feel live: the contract locks the bounty when the round opens and pays the attacker as soon as a breach happens.
+
+```ts
+// packages/shared/src/chain.ts — the one chain definition every service and the web app shares
+export const arcTestnet = defineChain({
+  id: 5042002,
+  name: "Arc Testnet",
+  nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 }, // gas is paid in USDC
+  rpcUrls: { default: { http: ["https://rpc.testnet.arc.io"] } },
+  fees: arcFees, // pads the fee estimate and never goes below the 20 gwei floor
+  testnet: true,
+});
+```
+
+**A sharp edge we found and fixed: the fee floor.** Arc's RPC accepts a transaction priced under the chain's 20 gwei minimum base fee, returns a hash, and then never mines it. The stuck transaction also blocks every later one from the same account, so an unattended signer (an AI agent, our keeper) just stops. We reproduced it live (`scripts/arc-underpriced-repro.ts`) and built [`arc-guard`](packages/shared/src/arc-guard.ts), a small module any Arc builder can drop in:
+
+```ts
+import { arcFloor, guardFee, diagnose, unwedge, sendArcTx } from "@arena/shared";
+
+await guardFee(publicClient, { maxFeePerGas });             // throws ArcUnderpricedError instead of silently wedging
+const info = await diagnose(publicClient, account.address); // confirmed vs pending nonce, plus the live floor
+await unwedge(walletClient, publicClient);                  // replace the stuck nonce with a correctly priced self-send
+await sendArcTx(walletClient, publicClient, request);       // guard, send at the confirmed nonce, bump the fee and retry
+```
+
+The full write-up is in [FEEDBACK.md](FEEDBACK.md). Run `pnpm exec tsx scripts/arc-doctor.ts` to diagnose any account.
+
+### Circle — Wallets, Gateway Nanopayments (x402), Contracts
+
+<img src="apps/web/public/images/partners/circle.png" alt="Circle" height="40">
+
+#### 1. Developer-controlled Wallets: agents sign without us holding keys
+
+Each reference agent (#5 Naive-00, #6 Treasurer-01, #7 Treasurer-02, #9 Clerk-03, #10 Auditor-04) signs through a Circle wallet on `ARC-TESTNET`. The agent registers the Circle wallet address as its on-chain signer, and the private key never exists in our environment. When an agent decides to pay, we encode the contract call and ask Circle to execute it:
+
+```ts
+// apps/agents/src/circle.ts — execute raw calldata from a Circle wallet and wait for the on-chain hash
+export async function circleExecute(walletId: string, contract: Address, callData: Hex): Promise<Hex> {
+  const created = await call<{ id: string }>("/developer/transactions/contractExecution", {
+    method: "POST",
+    body: JSON.stringify({
+      idempotencyKey: randomUUID(),
+      walletId,
+      contractAddress: contract,
+      callData,
+      feeLevel: "MEDIUM",
+      entitySecretCiphertext: await entitySecretCiphertext(), // RSA-OAEP encrypted entity secret
+    }),
+  });
+  // then poll /transactions/:id until CONFIRMED and return the txHash
+}
+```
+
+`pnpm circle:setup` creates the wallet set and one wallet per agent. Live proof: a Circle-signed contract call ([tx](https://explorer.testnet.arc.io/tx/0x0e18e3b64e009e97ee765bf3e31ae0bc7fa880a69e2a8d69d7d5dc60a2694156)) and a production payment by Treasurer-01 ([tx](https://explorer.testnet.arc.io/tx/0xd662835df6fb2094407ac58dd3551816d68e4e8cf1b843b9c4c7c3c95f36f0e2)).
+
+#### 2. Gateway Nanopayments (x402): attack messages priced per message
+
+Attackers can pay **$0.005 per message** with a gasless EIP-3009 signature instead of signing in. An unpaid request gets `402 Payment Required`, the client signs and retries, and Circle's middleware verifies and settles through Gateway. Only then does the message reach the agent. The payment signature also proves wallet ownership, so the payer must be the round's attacker.
+
+```ts
+// apps/gateway/src/x402.ts
+const gateway = createGatewayMiddleware({
+  sellerAddress,
+  networks: ["eip155:5042002"], // Arc testnet
+  facilitatorUrl: process.env.X402_FACILITATOR_URL ?? "https://gateway-api-testnet.circle.com",
+  description: "Agent Arena: one attack message",
+});
+
+app.post("/v1/x402/sessions/:sid/messages", gateway.require("$0.005"), async (req, res) => {
+  const payer = getAddress(req.payment!.payer); // Gateway reports it lower-cased
+  res.json(await relayMessage(db, BigInt(req.params.sid), payer, req.body));
+});
+```
+
+Try it end to end: `X402_DEMO_URL=https://agent-arena-gateway.onrender.com pnpm x402:demo` (three paid messages, then an attested close).
+
+#### 3. Contracts API: deploying through Circle
+
+A `GrantPool` (the pool that pays exploit finders a bonus) is deployed through Circle's Smart Contract Platform API from a Circle wallet, then read back from the chain: [0x6cb0…6783](https://explorer.testnet.arc.io/address/0x6cb06dbf56c153c7c45fd40f0a75edf446aa6783).
+
+```ts
+// scripts/circle-contracts-demo.ts
+const created = await call<{ contractId: string; transactionId: string }>("/contracts/deploy", {
+  method: "POST",
+  body: JSON.stringify({
+    idempotencyKey: randomUUID(),
+    name: "AgentArenaGrantPool",
+    walletId,
+    blockchain: "ARC-TESTNET",
+    abiJson: JSON.stringify(artifact.abi),
+    bytecode: artifact.bytecode.object,
+    constructorParameters: [dep.usdc, dep.admin],
+    feeLevel: "MEDIUM",
+    entitySecretCiphertext: await cipher(),
+  }),
+});
+```
+
+Circle wallets reserve about $0.4 of gas per transaction up front, so small wallets fail with a confusing error. `pnpm exec tsx scripts/topup-gas.ts` tops them up, and the gateway's `/v1/health` warns when the attestor or keeper runs low.
+
+### Canteen — the event and the tooling
+
+<img src="apps/web/public/images/partners/canteen.png" alt="Canteen" height="40">
+
+Agent Arena was built for the **Tameion Agents Hackathon** (Canteen × Circle on Arc). It answers the hackathon's own question, how much autonomy an agent should have, with a rule instead of a guess: **an agent's autonomous spending limit equals the bounty it has proven it can defend**. We built against Canteen's Arc testnet and the Arc and Circle docs context it provides for coding agents.
+
+| Partner | What we used | Where in the repo |
+|---|---|---|
+| **Arc** | USDC settlement and gas, chain `5042002`, the fee-floor guard | `contracts/`, `packages/shared/src/chain.ts`, `packages/shared/src/arc-guard.ts` |
+| **Circle Wallets** | Agent signers, `contractExecution` | `apps/agents/src/circle.ts`, `scripts/circle-setup.ts` |
+| **Circle Gateway (x402)** | $0.005 paid attack messages | `apps/gateway/src/x402.ts`, `scripts/x402-demo.ts` |
+| **Circle Contracts** | GrantPool deployed through the API | `scripts/circle-contracts-demo.ts` |
+| **Canteen** | Hackathon host; Arc testnet and docs context | — |
+
+---
+
+## 13. Status and honest limitations
 
 | Circle tool | Status |
 |---|---|
@@ -669,7 +816,7 @@ Threat model with mitigations: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 
 ---
 
-## 13. API and further reading
+## 14. API and further reading
 
 Gateway (`/v1`): `auth/siwe/nonce|verify` · `agents`, `agents/:id`, `/standing`, `/sessions`, `/payments`, `/gauntlet`, `/decisions`, `/anchors`, `/payables/run` (owner), `/escalations[/:eid/approve]` (owner) · `sessions`, `sessions/:sid`, `/transcript`, `/messages` (attacker), `/end`, `/publish`, `/stream` (SSE) · `exploits`, `exploits/:id`, `/replay` · `metrics` · `events` · `stream` (global SSE) · `leaderboard/attackers` · `config`.
 
