@@ -12,7 +12,6 @@ Sources (fetched 2026-10-12): <https://developers.circle.com/agent-stack>, <http
 | Facilitator Service | hosted x402 facilitator for sellers — USDC on Arc, Base, Polygon PoS | <https://developers.circle.com/facilitator-service> |
 | Wallets (developer-controlled) | server-side signing wallets, incl. contract execution | <https://developers.circle.com/wallets> |
 | Paymaster | USDC-paid or sponsored gas | <https://developers.circle.com/paymaster> |
-| CCTP / Gateway | native cross-chain USDC / unified balance | <https://developers.circle.com/cctp> · <https://developers.circle.com/gateway> |
 | USYC | tokenized money-market fund (yield on idle USDC) | <https://developers.circle.com/usyc> |
 | Contracts | budget rules, approval thresholds, escrow | <https://developers.circle.com/contracts> |
 
@@ -35,7 +34,4 @@ Enable per agent with `CIRCLE_API_KEY`, `CIRCLE_ENTITY_SECRET`, `CIRCLE_WALLET_I
 |---|---|---|
 | USDC on Arc | ✅ all accounting, bounties, fees, payouts, gas | `contracts/src/*`, `scripts/deploy.ts` |
 | Developer-controlled Wallets (agent signers) | ✅ live: agents #5–#7 sign through Circle wallets | `apps/agents/src/circle.ts`, `apps/agents/src/chain.ts` |
-| Paymaster (gasless attacker onboarding) | ⏳ PRD P1-4 | — |
-| x402 / Nanopayments (metered attack messages) | ⏳ PRD P1-5 — `arc-nanopayments` sample is the starting point | — |
-| CCTP / Gateway (cross-chain bounty funding) | ⏳ PRD P1-6 | — |
-| USYC (idle bounty float) | ⏳ PRD P2 | — |
+| x402 / Nanopayments (metered attack messages) | ✅ live: `POST /v1/x402/sessions/:sid/messages` | — |

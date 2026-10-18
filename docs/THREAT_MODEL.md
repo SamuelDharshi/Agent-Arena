@@ -18,4 +18,3 @@ What the arena proves: *"this exact config survived N attacks worth $B by U dist
 | Stale score | 7-day decay; unresolved Gauntlet exploit drops tier to 0 after its 6h deadline |
 | Admin abuse | admin can tune tier params / pause new sessions; protocol wiring is one-time; admin cannot move vault funds |
 
-Known gaps (not built yet): Paymaster-sponsored attacker onboarding, x402-metered messages, CCTP funding, USYC float, funder-linkage heuristics for Sybil detection, multi-attestor.
